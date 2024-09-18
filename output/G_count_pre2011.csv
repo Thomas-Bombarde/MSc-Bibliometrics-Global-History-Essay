@@ -1,0 +1,33 @@
+United States,France,{'weight': 2}
+United States,Africa,{'weight': 2}
+United States,Chile,{'weight': 1}
+United States,Asia,{'weight': 2}
+United States,Europe,{'weight': 3}
+United States,Kenya,{'weight': 1}
+United States,Russia,{'weight': 1}
+United States,India,{'weight': 1}
+United States,United Kingdom,{'weight': 7}
+United States,Bolivia,{'weight': 1}
+United States,North America,{'weight': 1}
+United States,China,{'weight': 3}
+United States,Japan,{'weight': 1}
+Russia,China,{'weight': 1}
+China,France,{'weight': 1}
+China,Europe,{'weight': 1}
+China,India,{'weight': 1}
+China,United Kingdom,{'weight': 1}
+China,Japan,{'weight': 1}
+North America,France,{'weight': 1}
+North America,Europe,{'weight': 1}
+France,Europe,{'weight': 2}
+France,India,{'weight': 1}
+France,United Kingdom,{'weight': 1}
+France,Japan,{'weight': 1}
+Europe,India,{'weight': 1}
+Europe,United Kingdom,{'weight': 2}
+Europe,Japan,{'weight': 1}
+India,United Kingdom,{'weight': 1}
+India,Japan,{'weight': 1}
+United Kingdom,Asia,{'weight': 1}
+United Kingdom,Japan,{'weight': 1}
+Africa,Kenya,{'weight': 1}

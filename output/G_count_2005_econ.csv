@@ -1,0 +1,18 @@
+United States,Chile,{'weight': 1}
+United States,Latvia,{'weight': 1}
+United States,China,{'weight': 1}
+United States,Maldives,{'weight': 2}
+United States,Africa,{'weight': 3}
+United States,United Kingdom,{'weight': 4}
+United States,France,{'weight': 2}
+United States,Kenya,{'weight': 1}
+United States,Europe,{'weight': 1}
+United States,Peru,{'weight': 1}
+United States,Asia,{'weight': 2}
+United States,Spain,{'weight': 1}
+United States,Bolivia,{'weight': 1}
+United Kingdom,Asia,{'weight': 1}
+United Kingdom,Spain,{'weight': 1}
+Kenya,Africa,{'weight': 1}
+Africa,Europe,{'weight': 1}
+Peru,Latvia,{'weight': 1}

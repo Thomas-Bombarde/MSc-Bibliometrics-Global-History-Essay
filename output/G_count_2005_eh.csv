@@ -1,0 +1,485 @@
+Europe,Australia,{'weight': 3}
+Europe,Chile,{'weight': 2}
+Europe,Canada,{'weight': 3}
+Europe,Maldives,{'weight': 6}
+Europe,Algeria,{'weight': 1}
+Europe,Hungary,{'weight': 1}
+Europe,Belgium,{'weight': 1}
+Europe,Italy,{'weight': 15}
+Europe,Portugal,{'weight': 3}
+Europe,Peru,{'weight': 6}
+Europe,India,{'weight': 7}
+Europe,Norway,{'weight': 3}
+Europe,Russia,{'weight': 11}
+Europe,Denmark,{'weight': 2}
+Europe,Poland,{'weight': 5}
+Europe,United Kingdom,{'weight': 41}
+Europe,Ukraine,{'weight': 1}
+Europe,Oman,{'weight': 8}
+Europe,Austria,{'weight': 6}
+Europe,Argentina,{'weight': 1}
+Europe,Croatia,{'weight': 2}
+Europe,Ireland,{'weight': 3}
+Europe,Asia,{'weight': 15}
+Europe,Spain,{'weight': 13}
+Europe,Switzerland,{'weight': 2}
+Europe,Georgia,{'weight': 1}
+Europe,Czech Republic (Czechia),{'weight': 1}
+Europe,Finland,{'weight': 1}
+Europe,Africa,{'weight': 5}
+Europe,Mexico,{'weight': 2}
+Europe,Sweden,{'weight': 7}
+Europe,Turkey,{'weight': 3}
+Europe,United States,{'weight': 143}
+Europe,Germany,{'weight': 25}
+Europe,Uruguay,{'weight': 1}
+Europe,Netherlands,{'weight': 7}
+Europe,Greece,{'weight': 1}
+Europe,Japan,{'weight': 4}
+Europe,North America,{'weight': 5}
+Europe,Brazil,{'weight': 3}
+Europe,Slovakia,{'weight': 1}
+Europe,France,{'weight': 29}
+Europe,Romania,{'weight': 1}
+Europe,China,{'weight': 11}
+Europe,South America,{'weight': 1}
+Oman,Czech Republic (Czechia),{'weight': 1}
+Oman,Canada,{'weight': 1}
+Oman,Hungary,{'weight': 1}
+Oman,Turkey,{'weight': 4}
+Oman,United States,{'weight': 21}
+Oman,Italy,{'weight': 2}
+Oman,Germany,{'weight': 1}
+Oman,Peru,{'weight': 1}
+Oman,Syria,{'weight': 2}
+Oman,India,{'weight': 1}
+Oman,Lebanon,{'weight': 1}
+Oman,Russia,{'weight': 2}
+Oman,Armenia,{'weight': 1}
+Oman,Poland,{'weight': 1}
+Oman,United Kingdom,{'weight': 3}
+Oman,Ukraine,{'weight': 1}
+Oman,Austria,{'weight': 1}
+Oman,Jordan,{'weight': 1}
+Oman,Croatia,{'weight': 1}
+Oman,Slovakia,{'weight': 1}
+Oman,Romania,{'weight': 3}
+Oman,Ireland,{'weight': 1}
+Oman,Egypt,{'weight': 1}
+Oman,Spain,{'weight': 1}
+United States,Australia,{'weight': 25}
+United States,Maldives,{'weight': 50}
+United States,Jamaica,{'weight': 3}
+United States,Seychelles,{'weight': 19}
+United States,Portugal,{'weight': 7}
+United States,Peru,{'weight': 19}
+United States,Tunisia,{'weight': 4}
+United States,India,{'weight': 43}
+United States,South Africa,{'weight': 1}
+United States,Russia,{'weight': 59}
+United States,Denmark,{'weight': 5}
+United States,United Kingdom,{'weight': 330}
+United States,Ukraine,{'weight': 3}
+United States,Argentina,{'weight': 9}
+United States,Croatia,{'weight': 1}
+United States,Egypt,{'weight': 5}
+United States,Indonesia,{'weight': 3}
+United States,Switzerland,{'weight': 3}
+United States,Georgia,{'weight': 8}
+United States,Somalia,{'weight': 1}
+United States,Africa,{'weight': 47}
+United States,Mexico,{'weight': 26}
+United States,Estonia,{'weight': 1}
+United States,Sweden,{'weight': 22}
+United States,Vietnam,{'weight': 3}
+United States,Kenya,{'weight': 1}
+United States,Uruguay,{'weight': 2}
+United States,Mauritius,{'weight': 3}
+United States,Cuba,{'weight': 4}
+United States,Netherlands,{'weight': 20}
+United States,Greece,{'weight': 4}
+United States,North America,{'weight': 17}
+United States,Colombia,{'weight': 3}
+United States,Niger,{'weight': 3}
+United States,Chad,{'weight': 2}
+United States,France,{'weight': 133}
+United States,Romania,{'weight': 2}
+United States,China,{'weight': 34}
+United States,North Korea,{'weight': 1}
+United States,Bolivia,{'weight': 2}
+United States,Costa Rica,{'weight': 1}
+United States,Chile,{'weight': 3}
+United States,Thailand,{'weight': 1}
+United States,Canada,{'weight': 46}
+United States,Algeria,{'weight': 1}
+United States,State of Palestine,{'weight': 1}
+United States,Hungary,{'weight': 5}
+United States,Barbados,{'weight': 2}
+United States,Belgium,{'weight': 6}
+United States,Italy,{'weight': 38}
+United States,Singapore,{'weight': 1}
+United States,Nigeria,{'weight': 3}
+United States,Zimbabwe,{'weight': 1}
+United States,Norway,{'weight': 10}
+United States,Gambia,{'weight': 1}
+United States,Poland,{'weight': 6}
+United States,Austria,{'weight': 13}
+United States,Jordan,{'weight': 1}
+United States,Mali,{'weight': 9}
+United States,Honduras,{'weight': 1}
+United States,Haiti,{'weight': 1}
+United States,Ireland,{'weight': 32}
+United States,Ecuador,{'weight': 2}
+United States,Asia,{'weight': 19}
+United States,Spain,{'weight': 34}
+United States,Israel,{'weight': 4}
+United States,Czech Republic (Czechia),{'weight': 1}
+United States,Nicaragua,{'weight': 1}
+United States,Finland,{'weight': 3}
+United States,Germany,{'weight': 76}
+United States,Syria,{'weight': 3}
+United States,Ethiopia,{'weight': 2}
+United States,Azerbaijan,{'weight': 1}
+United States,Philippines,{'weight': 2}
+United States,New Zealand,{'weight': 8}
+United States,Japan,{'weight': 31}
+United States,Brazil,{'weight': 7}
+United States,Slovakia,{'weight': 1}
+United States,Iceland,{'weight': 2}
+United States,South America,{'weight': 2}
+Georgia,Russia,{'weight': 1}
+Georgia,Africa,{'weight': 1}
+Georgia,United Kingdom,{'weight': 1}
+Georgia,Sweden,{'weight': 1}
+Italy,Maldives,{'weight': 2}
+Italy,Mexico,{'weight': 1}
+Italy,Sweden,{'weight': 2}
+Italy,Portugal,{'weight': 1}
+Italy,Germany,{'weight': 7}
+Italy,Peru,{'weight': 1}
+Italy,Ethiopia,{'weight': 1}
+Italy,Netherlands,{'weight': 1}
+Italy,Norway,{'weight': 1}
+Italy,Greece,{'weight': 1}
+Italy,Russia,{'weight': 1}
+Italy,Denmark,{'weight': 1}
+Italy,United Kingdom,{'weight': 9}
+Italy,France,{'weight': 10}
+Italy,Ecuador,{'weight': 1}
+Italy,Asia,{'weight': 1}
+Italy,Spain,{'weight': 6}
+Asia,Chile,{'weight': 1}
+Asia,Thailand,{'weight': 1}
+Asia,Canada,{'weight': 1}
+Asia,Maldives,{'weight': 1}
+Asia,Africa,{'weight': 6}
+Asia,Mexico,{'weight': 2}
+Asia,Nigeria,{'weight': 1}
+Asia,India,{'weight': 7}
+Asia,Greece,{'weight': 1}
+Asia,Russia,{'weight': 1}
+Asia,Japan,{'weight': 4}
+Asia,China,{'weight': 10}
+Asia,Niger,{'weight': 1}
+Asia,Brazil,{'weight': 1}
+Asia,United Kingdom,{'weight': 6}
+Asia,Argentina,{'weight': 1}
+Asia,France,{'weight': 5}
+Asia,South America,{'weight': 1}
+China,Maldives,{'weight': 1}
+China,Africa,{'weight': 2}
+China,Mexico,{'weight': 1}
+China,Malaysia,{'weight': 1}
+China,Singapore,{'weight': 1}
+China,Peru,{'weight': 1}
+China,India,{'weight': 4}
+China,Netherlands,{'weight': 1}
+China,Russia,{'weight': 1}
+China,Japan,{'weight': 8}
+China,United Kingdom,{'weight': 4}
+China,France,{'weight': 3}
+China,Indonesia,{'weight': 1}
+China,Spain,{'weight': 1}
+China,South America,{'weight': 1}
+India,Canada,{'weight': 1}
+India,Maldives,{'weight': 2}
+India,Africa,{'weight': 4}
+India,Panama,{'weight': 1}
+India,Peru,{'weight': 3}
+India,Syria,{'weight': 1}
+India,Netherlands,{'weight': 2}
+India,North America,{'weight': 1}
+India,Japan,{'weight': 1}
+India,Brazil,{'weight': 1}
+India,United Kingdom,{'weight': 18}
+India,Austria,{'weight': 1}
+India,France,{'weight': 4}
+India,Spain,{'weight': 3}
+Poland,Czech Republic (Czechia),{'weight': 1}
+Poland,Russia,{'weight': 2}
+Poland,Canada,{'weight': 1}
+Poland,Ukraine,{'weight': 1}
+Poland,Slovakia,{'weight': 1}
+Poland,Austria,{'weight': 1}
+Poland,Croatia,{'weight': 1}
+Poland,France,{'weight': 2}
+Poland,Romania,{'weight': 1}
+Poland,Germany,{'weight': 4}
+Poland,Netherlands,{'weight': 1}
+United Kingdom,Australia,{'weight': 4}
+United Kingdom,Chile,{'weight': 3}
+United Kingdom,Canada,{'weight': 12}
+United Kingdom,Maldives,{'weight': 22}
+United Kingdom,Jamaica,{'weight': 2}
+United Kingdom,Seychelles,{'weight': 21}
+United Kingdom,Barbados,{'weight': 1}
+United Kingdom,Belgium,{'weight': 2}
+United Kingdom,Portugal,{'weight': 2}
+United Kingdom,Peru,{'weight': 8}
+United Kingdom,Nigeria,{'weight': 1}
+United Kingdom,South Africa,{'weight': 1}
+United Kingdom,Norway,{'weight': 5}
+United Kingdom,Tunisia,{'weight': 1}
+United Kingdom,Russia,{'weight': 4}
+United Kingdom,Denmark,{'weight': 1}
+United Kingdom,Austria,{'weight': 1}
+United Kingdom,Argentina,{'weight': 1}
+United Kingdom,Mali,{'weight': 1}
+United Kingdom,Ireland,{'weight': 26}
+United Kingdom,Egypt,{'weight': 2}
+United Kingdom,Spain,{'weight': 4}
+United Kingdom,Africa,{'weight': 6}
+United Kingdom,Sweden,{'weight': 4}
+United Kingdom,Germany,{'weight': 23}
+United Kingdom,Mauritius,{'weight': 1}
+United Kingdom,Netherlands,{'weight': 11}
+United Kingdom,North America,{'weight': 4}
+United Kingdom,Japan,{'weight': 1}
+United Kingdom,New Zealand,{'weight': 3}
+United Kingdom,Niger,{'weight': 1}
+United Kingdom,Brazil,{'weight': 3}
+United Kingdom,Iceland,{'weight': 2}
+United Kingdom,France,{'weight': 60}
+Mexico,Chile,{'weight': 1}
+Mexico,Africa,{'weight': 3}
+Mexico,Germany,{'weight': 1}
+Mexico,Uruguay,{'weight': 1}
+Mexico,Peru,{'weight': 2}
+Mexico,Cuba,{'weight': 1}
+Mexico,Japan,{'weight': 1}
+Mexico,Brazil,{'weight': 3}
+Mexico,Argentina,{'weight': 2}
+Mexico,France,{'weight': 2}
+Mexico,Honduras,{'weight': 1}
+Mexico,Spain,{'weight': 6}
+Mexico,Bolivia,{'weight': 1}
+Cuba,Africa,{'weight': 1}
+Cuba,Jamaica,{'weight': 1}
+Cuba,Brazil,{'weight': 2}
+Cuba,Barbados,{'weight': 1}
+Cuba,Argentina,{'weight': 1}
+Cuba,Chad,{'weight': 1}
+Cuba,Spain,{'weight': 1}
+Cuba,Peru,{'weight': 1}
+France,Chile,{'weight': 1}
+France,Canada,{'weight': 4}
+France,Maldives,{'weight': 9}
+France,Algeria,{'weight': 1}
+France,Jamaica,{'weight': 1}
+France,Hungary,{'weight': 1}
+France,Barbados,{'weight': 1}
+France,Belgium,{'weight': 3}
+France,Portugal,{'weight': 1}
+France,Peru,{'weight': 2}
+France,Nigeria,{'weight': 1}
+France,Lebanon,{'weight': 1}
+France,Norway,{'weight': 4}
+France,Russia,{'weight': 5}
+France,Denmark,{'weight': 2}
+France,Austria,{'weight': 3}
+France,Argentina,{'weight': 1}
+France,Ireland,{'weight': 2}
+France,Indonesia,{'weight': 1}
+France,Spain,{'weight': 3}
+France,Switzerland,{'weight': 2}
+France,Finland,{'weight': 1}
+France,Africa,{'weight': 9}
+France,Sweden,{'weight': 5}
+France,Vietnam,{'weight': 1}
+France,Germany,{'weight': 21}
+France,Uruguay,{'weight': 1}
+France,Mauritius,{'weight': 2}
+France,Syria,{'weight': 2}
+France,Netherlands,{'weight': 1}
+France,Japan,{'weight': 3}
+France,North America,{'weight': 2}
+France,Niger,{'weight': 1}
+France,Brazil,{'weight': 1}
+Barbados,Africa,{'weight': 2}
+Barbados,Jamaica,{'weight': 2}
+Russia,Canada,{'weight': 2}
+Russia,Maldives,{'weight': 1}
+Russia,Estonia,{'weight': 1}
+Russia,Hungary,{'weight': 1}
+Russia,Sweden,{'weight': 2}
+Russia,Germany,{'weight': 5}
+Russia,Netherlands,{'weight': 1}
+Russia,Norway,{'weight': 1}
+Russia,Japan,{'weight': 1}
+Russia,Ukraine,{'weight': 2}
+Russia,Austria,{'weight': 1}
+Russia,Romania,{'weight': 1}
+Russia,Spain,{'weight': 1}
+Russia,Switzerland,{'weight': 1}
+Africa,Australia,{'weight': 1}
+Africa,Canada,{'weight': 1}
+Africa,Maldives,{'weight': 3}
+Africa,Jamaica,{'weight': 3}
+Africa,Seychelles,{'weight': 1}
+Africa,Sierra Leone,{'weight': 1}
+Africa,Sweden,{'weight': 1}
+Africa,Portugal,{'weight': 2}
+Africa,Nigeria,{'weight': 1}
+Africa,Mauritius,{'weight': 1}
+Africa,South Africa,{'weight': 8}
+Africa,Gambia,{'weight': 2}
+Africa,Japan,{'weight': 1}
+Africa,Central African Republic,{'weight': 1}
+Africa,Niger,{'weight': 1}
+Africa,Ireland,{'weight': 1}
+Africa,South America,{'weight': 1}
+Spain,Algeria,{'weight': 1}
+Spain,Malta,{'weight': 1}
+Spain,Sweden,{'weight': 3}
+Spain,Germany,{'weight': 1}
+Spain,South Korea,{'weight': 1}
+Spain,Peru,{'weight': 3}
+Spain,Netherlands,{'weight': 1}
+Spain,Norway,{'weight': 1}
+Spain,Denmark,{'weight': 1}
+Spain,North America,{'weight': 1}
+Spain,Brazil,{'weight': 1}
+Spain,Argentina,{'weight': 3}
+Spain,Mali,{'weight': 2}
+Spain,Ecuador,{'weight': 1}
+Spain,Bolivia,{'weight': 1}
+Brazil,Chile,{'weight': 4}
+Brazil,Portugal,{'weight': 1}
+Brazil,Germany,{'weight': 1}
+Brazil,Uruguay,{'weight': 1}
+Brazil,Peru,{'weight': 1}
+Brazil,Argentina,{'weight': 4}
+Germany,Chile,{'weight': 1}
+Germany,Canada,{'weight': 2}
+Germany,Maldives,{'weight': 2}
+Germany,Hungary,{'weight': 1}
+Germany,Belgium,{'weight': 2}
+Germany,Portugal,{'weight': 1}
+Germany,Peru,{'weight': 1}
+Germany,Norway,{'weight': 1}
+Germany,Denmark,{'weight': 1}
+Germany,Ukraine,{'weight': 1}
+Germany,Austria,{'weight': 5}
+Germany,Croatia,{'weight': 1}
+Germany,Mali,{'weight': 1}
+Germany,Ireland,{'weight': 2}
+Germany,Switzerland,{'weight': 2}
+Germany,Czech Republic (Czechia),{'weight': 1}
+Germany,Sweden,{'weight': 3}
+Germany,Ethiopia,{'weight': 1}
+Germany,Netherlands,{'weight': 1}
+Germany,Japan,{'weight': 3}
+Germany,North America,{'weight': 1}
+Germany,Slovakia,{'weight': 1}
+Germany,Romania,{'weight': 1}
+Japan,Sweden,{'weight': 1}
+Japan,Belgium,{'weight': 1}
+Japan,Singapore,{'weight': 1}
+Japan,Azerbaijan,{'weight': 1}
+Japan,North America,{'weight': 1}
+Japan,Mali,{'weight': 1}
+Japan,North Korea,{'weight': 1}
+Japan,South America,{'weight': 1}
+Chile,Argentina,{'weight': 5}
+Chile,Bolivia,{'weight': 1}
+Ireland,Australia,{'weight': 1}
+Ireland,Denmark,{'weight': 2}
+Ireland,Somalia,{'weight': 1}
+Ireland,Maldives,{'weight': 2}
+Ireland,Canada,{'weight': 1}
+Ireland,Seychelles,{'weight': 1}
+Ireland,Mali,{'weight': 1}
+Seychelles,Israel,{'weight': 1}
+Seychelles,Australia,{'weight': 1}
+Seychelles,Maldives,{'weight': 5}
+Seychelles,Peru,{'weight': 1}
+Maldives,Australia,{'weight': 1}
+Maldives,Canada,{'weight': 3}
+Maldives,Sweden,{'weight': 1}
+Maldives,Uruguay,{'weight': 1}
+Maldives,Peru,{'weight': 1}
+Maldives,Mauritius,{'weight': 1}
+Maldives,Philippines,{'weight': 1}
+Maldives,North America,{'weight': 1}
+Sweden,Belgium,{'weight': 1}
+Sweden,Norway,{'weight': 2}
+Sweden,Denmark,{'weight': 2}
+Sweden,Switzerland,{'weight': 1}
+Peru,Argentina,{'weight': 1}
+Peru,Bolivia,{'weight': 1}
+Argentina,Australia,{'weight': 1}
+Argentina,Canada,{'weight': 1}
+Argentina,South Korea,{'weight': 1}
+Argentina,Bolivia,{'weight': 1}
+Finland,Norway,{'weight': 1}
+Finland,Canada,{'weight': 1}
+Romania,Czech Republic (Czechia),{'weight': 1}
+Romania,Ukraine,{'weight': 1}
+Romania,Slovakia,{'weight': 1}
+Romania,Austria,{'weight': 1}
+Romania,Hungary,{'weight': 1}
+Romania,Croatia,{'weight': 1}
+Netherlands,Norway,{'weight': 1}
+Netherlands,Indonesia,{'weight': 1}
+Norway,Czech Republic (Czechia),{'weight': 1}
+Norway,Canada,{'weight': 3}
+Norway,State of Palestine,{'weight': 1}
+Norway,Denmark,{'weight': 2}
+Norway,Slovakia,{'weight': 1}
+Norway,Iceland,{'weight': 2}
+Canada,Australia,{'weight': 3}
+Canada,New Zealand,{'weight': 2}
+Canada,North America,{'weight': 4}
+Canada,Austria,{'weight': 1}
+Canada,Iceland,{'weight': 2}
+Canada,Switzerland,{'weight': 1}
+North America,Australia,{'weight': 2}
+Switzerland,Austria,{'weight': 1}
+Austria,Czech Republic (Czechia),{'weight': 1}
+Austria,Hungary,{'weight': 3}
+Austria,Slovakia,{'weight': 1}
+Austria,Ukraine,{'weight': 1}
+Austria,Croatia,{'weight': 1}
+Portugal,Gambia,{'weight': 1}
+Croatia,Czech Republic (Czechia),{'weight': 1}
+Croatia,Ukraine,{'weight': 1}
+Croatia,Slovakia,{'weight': 1}
+New Zealand,Australia,{'weight': 4}
+Mali,Somalia,{'weight': 1}
+Ukraine,Czech Republic (Czechia),{'weight': 1}
+Ukraine,Slovakia,{'weight': 1}
+Syria,Jordan,{'weight': 1}
+Syria,Lebanon,{'weight': 1}
+Nigeria,Niger,{'weight': 7}
+Nigeria,Kenya,{'weight': 1}
+Nigeria,Egypt,{'weight': 1}
+Niger,Kenya,{'weight': 1}
+Niger,Egypt,{'weight': 1}
+Australia,South America,{'weight': 1}
+Czech Republic (Czechia),Slovakia,{'weight': 2}
+Israel,State of Palestine,{'weight': 1}
+Cambodia,Rwanda,{'weight': 1}
+Nicaragua,Costa Rica,{'weight': 1}
+Costa Rica,Colombia,{'weight': 1}
+Egypt,Kenya,{'weight': 1}
+Dominica,Dominican Republic,{'weight': 1}

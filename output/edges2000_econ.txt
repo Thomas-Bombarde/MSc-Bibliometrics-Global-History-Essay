@@ -1,0 +1,4 @@
+('United States', 11929)
+('Europe', 11929)
+('Africa', 11929)
+('None', 11930)

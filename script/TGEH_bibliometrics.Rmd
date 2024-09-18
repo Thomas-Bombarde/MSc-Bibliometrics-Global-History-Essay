@@ -1,0 +1,2586 @@
+---
+title: "TGEH_bibliometrics"
+format: pdf
+editor: visual
+---
+
+You can add options to executable code like this
+
+# Set up chunk
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(zoo)
+library(readr)
+library(tidyverse)
+library(sandwich)
+library(lmtest)
+library(stargazer)
+library(bipartite)
+# set root directory for all chunks
+knitr::opts_knit$set(root.dir = "/Users/tombombo/Documents/EH1 TGEH/essay_1_code")
+
+### FUNCTIONS
+# Function to count occurrences
+gini_coefficient <- function(x) {
+  if (all(x == 0)) {
+    return(0)
+  }
+  
+  n <- length(x)
+  sorted_x <- sort(x)
+  cumulative_x <- cumsum(sorted_x)
+  G <- 1 + (1 / n) - 2 * sum((n:1) * sorted_x) / (n * sum(sorted_x))
+  return(G)
+}
+
+count_occurrences <- function(texts, patterns) {
+  "Returns the number of occurences of any string in the texts that matched_patterns any of the patterns"
+  # Apply str_detect for each pattern and abstract combination
+  matched_patterns <- sapply(patterns, function(pattern) {
+    str_detect(texts, pattern)
+  }) %>% as.data.frame()
+  # Sum the occurrences
+  total_count <- if (nrow(matched_patterns) == 1) (sum(matched_patterns[1], na.rm = TRUE)) else
+    sum(rowSums(matched_patterns), na.rm = TRUE)
+  
+  return(total_count)
+}
+
+
+####### USEFUL FUNCTIONS
+
+count_new_keywords <- function(observed_keywords, year){
+  "Returns the number of observed keywords that have not appeared in previous years"
+  #if (is.na(observed_keywords)) return(NA)
+  # get keywords in all previous years
+  previous_keys <- keywords_year %>%
+    filter(publication.year<year) %>% 
+    pull(keywords) %>%
+    str_split(';') %>% 
+    unlist() %>% 
+    str_trim() %>%
+    unique()
+  # formate observed keys
+  these_keys <- observed_keywords %>% str_split(';') %>% unlist() %>% str_trim()
+  # count new keys
+  n_new_keys <- these_keys %>% setdiff(previous_keys) %>% length()
+  return(n_new_keys)
+}
+make_keywords <- function(keyword_col) {
+  "Makes the keywords observed in a column from the keyword column"
+  keywords <- keyword_col %>% na.omit()
+  keywords <- keywords %>%
+    unlist() %>% 
+    str_trim() %>%
+    str_split(";") %>% 
+    flatten_chr()
+  keywords <- keywords %>% paste(collapse = "; ")
+  print(paste0("key words under study : ", keywords))
+  return(keywords)
+}
+```
+
+```{r clean data}
+countries <- read_csv("input/WorldCountriesList.csv")
+full_article_data <- read_csv("output/articles_spacy.csv")
+raw_data <- full_article_data
+
+
+check_patterns <- function(strings, patterns) {
+  any(sapply(patterns, function(pattern) any(str_detect(strings, pattern))))
+}
+
+names(full_article_data) <- names(full_article_data) %>% tolower()
+full_article_data <- full_article_data %>%
+  select(authors, article.title, source.title, 
+         language, 
+         author.keywords,
+         keywords.plus, 
+         abstract, 
+         affiliations,
+         funding.orgs,
+         funding.name.preferred,
+         funding.text,
+         `times.cited,.wos.core`,
+         `times.cited,.all.databases`,
+         publisher,
+         publisher.city,
+         issn, isbn, 
+         journal.abbreviation,
+         journal.iso.abbreviation, 
+         publication.date, 
+         publication.year, 
+         number.of.pages,
+         country_studied,
+         africa,
+         europe,
+         country_studied,
+         `north america`,
+         oceania,
+         `south america`,
+         asia,
+         eh,
+         econ) %>% 
+  rename("times.cited..all.databases" = `times.cited,.all.databases`,
+         "times.cited..wos.core" = `times.cited,.wos.core`)
+auths <- str_split(full_article_data$authors, ";")
+auths <- sapply(auths, length)
+full_article_data$number.of.authors <- auths
+
+
+country_stats <- read_csv("output/world_countries.csv")
+econometric_margo2008 <- c("\\btable\\b",
+                           "regression", 
+                           "logit",
+                           "probit", 
+                           "coefficient",
+                           "standard error",
+                           "maximum likelihood")
+
+econometric_other_keys <- c("\\btable\\b",
+                       "regression", 
+                       "logit",
+                       "probit", 
+                       "standard error", 
+                       "maximum likelihood",
+                       "\\bOLS\\b",
+                       "linear model",
+                       "instrumental variable",
+                       "panel",
+                       "fixed effects",
+                       "random effects",
+                       "difference-in-difference",
+                       "difference in difference",
+                       "DiD",
+                       "coefficient",
+                       "confidence interval",
+                       "confidance interval",
+                       "time series",
+                       "GARCH",
+                       "ARIMA",
+                       "equation",
+                       "selection bias",
+                       "propensity score",
+                       "mle",
+                       "natural experiement",
+                       "quasi-experiment",
+                       "markov",
+                       "monte carlo",
+                       "principal component",
+                       "model selection",
+                       "model specification",
+                       "overfitting",
+                       "bootstrap",
+                       "mean reversion",
+                       "unit root",
+                       "Granger causal",
+                       "co-integration",
+                       "standard error",
+                       "synthetic control",
+                       "event study",
+                       "RDD",
+                       "\\bIV\\b",
+                       "endogeneity",
+                       "exogen",
+                       "heteroskedastic",
+                       "correlation",
+                       "colinear",
+                       "\\bdata\\b",
+                       "dataset",
+                       "database", 
+                       "identification strategy",
+                       "estimat")
+
+data <- full_article_data #%>% filter(!is.na(country_studied))
+data <- data %>% left_join(country_stats, by = c("country_studied" = "Country"))
+names(data) <- tolower(names(data))
+data$article_id <- 1:nrow(data)
+
+# find econometric terms
+data$econometric_margo <- data %>% select(abstract) %>% 
+  apply(1, function (x) check_patterns(x, econometric_margo2008))
+data$econometric_other <- data %>% select(abstract) %>%
+  apply(1, function (x) check_patterns(x, econometric_other_keys))
+
+# get number 1 funder and the number of funders for an article
+data$first_funder <- data %>% select(funding.orgs) %>% 
+  apply(1, function (x) x %>% str_split(';') %>%
+           unlist() %>% 
+           str_trim() %>%
+           gsub(pattern="[.*?]", replacement = "") %>% 
+           pluck(1))
+data$n_funders <- data %>% select(funding.orgs) %>% 
+  apply(1, function (x) x %>% 
+           str_split(';') %>%
+           unlist() %>% 
+           str_trim() %>%
+           gsub(pattern="[.*?]", replacement = "") %>% 
+          na.omit() %>% 
+           length())
+
+data <- data %>% 
+  mutate("continent_sum" = africa + asia + europe + `north america` + oceania +`south america` , 
+         "intercontinental" = ifelse( continent_sum > 1, 1, 0))
+
+# Deal with missing values of continent and of econometric_margo
+# FIX 
+data <- data %>%
+  mutate(econometric_other = as.numeric(econometric_other),
+        econometric_margo = as.numeric(econometric_margo)) %>% 
+  mutate(africa = ifelse(is.na(africa) == TRUE, 0, africa),
+         asia = ifelse(is.na(asia) == TRUE, 0, asia),
+         europe = ifelse(is.na(europe) == TRUE, 0, europe),
+         `north america` = ifelse(is.na(`north america`) == TRUE, 0, `north america`),
+         oceania = ifelse(is.na(oceania) == TRUE, 0, oceania),
+         `south america` = ifelse(is.na(`south america`) == TRUE, 0, `south america`))
+
+# Get Cumulative citations of authors.
+# Separate the authors into individual rows
+articles_long <- data %>%
+  separate_rows(authors, sep = ";")
+# Remove leading and trailing whitespace
+articles_long$authors <- trimws(articles_long$authors)
+
+# Calculate the citation counts for each author for previous years
+# Assuming there's a column named 'citations' and 'publication_year'
+# Filter the articles published before the current article's publication year
+articles_long <- articles_long %>%
+  group_by(authors) %>%
+  arrange(authors, publication.year) %>%
+  mutate(cumulative_citations = cumsum(lag(times.cited..all.databases, default = 0))) %>%
+  ungroup()
+
+# Summarize the citation counts by authors for each article
+author_citations <- articles_long %>%
+  group_by(article_id) %>%
+  summarise(total_cumulative_citations = sum(cumulative_citations, na.rm = TRUE))
+
+# Join this summary back to the original articles dataframe
+data <- data %>%
+  left_join(author_citations, by = "article_id")
+
+# note decade and half decade
+data <- data %>%
+  mutate(decade = case_when(
+    publication.year %in% 1999:2010 ~ "2000s",
+    publication.year %in% 2010:2020 ~ "2010s",
+    TRUE ~ "2020s")
+  ) %>% 
+  mutate(half_decade = case_when(
+    publication.year %in% 1999:2005 ~ "1999-2005",
+    publication.year %in% 2006:2010 ~ "2006-2010",
+    publication.year %in% 2011:2015 ~ "2011-2015",
+    publication.year %in% 2016:2020 ~ "2016-2020",
+    TRUE ~ "2020s")
+  )
+
+## get keywords per year
+keywords_year <- data %>% 
+  group_by(publication.year) %>% 
+  summarise(keywords = make_keywords(keywords.plus))
+
+# add indicator to each row equal to 1 if any of the strings in keywords.plus is contained in any of the previous years
+data$new_keywords <- apply(data, 1, function(x) count_new_keywords(x["keywords.plus"], x["publication.year"]))
+data$n_keywords <- apply(data, 1, function(x) count_new_keywords(x["keywords.plus"], 2024))
+
+write_csv(data, "output/articles_full.csv")
+rm(full_article_data, raw_data)
+rm(articles_long, author_citations)
+```
+
+# Regressions
+
+# Functions for Regression Analysis
+
+```{r functions}
+cluster_se <- function(model, cluster_var) {
+    vcovCL <- vcovHC(model, type = "HC1", cluster = cluster_var)
+    coeftest(model, vcovCL)
+}
+robust_se <- function(model) {
+  coeftest(model, vcov = vcovHC(model, type = "HC1"))
+}
+plot_coefs <- function(data, ylab="Econometric x Continent"){
+  "Takes df with coefficients per year and their confidence interval and then plots,
+  Without a break."
+  plot <- ggplot(data, aes(x=year)) +
+    # info
+    geom_hline(yintercept = 0, color = "black", lwd = 0.5)  +
+    geom_point(aes(y=coef, color = variable), 
+               size = 1.5, 
+               position = position_dodge(width = 0.7)) +
+    geom_errorbar(aes(ymin = upper, ymax = lower, color = variable), 
+                  position = position_dodge(width = 0.7),
+                  lwd = 0.5, width = 0.6) +
+    #scales
+    #scale_y_continuous(n.breaks = 7) +
+    #scale_color_manual(values = c("darkblue", "red3", "black")) +
+    # Reference point
+    # geom_point(aes(x = 4, y = 0), color = "darkblue", size = 1.5) +
+    #aesthetics
+    labs(x = "", y = ylab) +
+    theme_bw() +
+    theme(legend.position = c(0.5,-0.27),
+          legend.title = element_blank(),
+          legend.direction = "horizontal",
+          axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          text = element_text(family = "serif", size = 12),
+          axis.text = element_text(color = "black"),
+          panel.border = element_rect(color = "black"),
+          plot.margin = margin(1,4,1,1, "cm"),
+          legend.margin = margin(0,0,0,0, "cm"),
+          aspect.ratio = 0.6
+    )
+  return(plot)
+}
+  
+# GET COEFFICIENTS AND CONFINT FOR PLOTTING CONTINENT X ECONOMETRIC
+yearmodel_to_plotting_df <- function(model=lm_meca, 
+                                     indepvar="publication.year\\d+:econometric_otherTRUE:",
+                                     std_errors){
+  "Takes model and returns dataframe for plotting regression coefs over years"
+
+  coefficients <- model$coefficients %>% 
+    as.data.frame() %>% 
+    rownames_to_column() %>% 
+    rename("variable" = "rowname", "coef" = ".") %>%
+    mutate("year"= str_extract(variable, "\\d+")) # creates year variable
+  # add confidence interval
+  confint <- confint(std_errors) %>% 
+    as.data.frame() %>% 
+    rownames_to_column() %>% 
+    rename("variable" = "rowname", "lower" = "2.5 %", "upper" = "97.5 %") %>% 
+    mutate("year"= str_extract(variable, "\\d+")) %>% 
+    left_join(coefficients, by = c("variable", "year"))
+  econometric_continent_coef <- confint %>% 
+    filter(!is.na(year)) %>% 
+    filter(str_detect(variable, indepvar)) %>% 
+    mutate("variable" = str_replace(variable, indepvar, "")) %>% 
+    filter(variable !="") %>% 
+    mutate("variable" = str_replace(variable, "africa", "Africa")) %>% 
+    mutate("variable" = str_replace(variable, "europe", "Europe")) %>% 
+    mutate("variable" = str_replace(variable, "oceania", "Oceania")) %>% 
+    mutate("variable" = str_replace(variable, "asia", "Asia")) %>% 
+    mutate("variable" = str_replace(variable, "`south america`", "South America"))%>% 
+    mutate("variable" = str_replace(variable, "`north america`", "North America"))%>% 
+    mutate("variable" = str_replace(variable, "intercontinental", "Intercontinental"))
+  return(econometric_continent_coef)
+}
+periodmodel_to_plotting_df <- function(model=lm_meca, 
+                                       indepvar="period\\d+-\\d+:econometric_otherTRUE:",
+                                       std_errors){
+  "Takes model and returns dataframe for plotting regression coefs over period"
+  coefficients <- model$coefficients %>% 
+    as.data.frame() %>% 
+    rownames_to_column() %>% 
+    rename("variable" = "rowname", "coef" = ".") %>%
+    mutate("year"= str_extract(variable, "\\d+-\\d+")) # creates year variable
+  # add confidence interval
+  confint <- confint(std_errors) %>% 
+    as.data.frame() %>% 
+    rownames_to_column() %>% 
+    rename("variable" = "rowname", "lower" = "2.5 %", "upper" = "97.5 %") %>% 
+    mutate("year"= str_extract(variable, "\\d+-\\d+")) %>% 
+    left_join(coefficients, by = c("variable", "year"))
+  econometric_continent_coef <- confint %>% 
+    filter(!is.na(year)) %>% 
+    filter(str_detect(variable, indepvar)) %>% 
+    mutate("variable" = str_replace(variable, indepvar, "")) %>% 
+    filter(variable !="") %>% 
+    mutate("variable" = str_replace(variable, "africa", "Africa")) %>% 
+    mutate("variable" = str_replace(variable, "europe", "Europe")) %>% 
+    mutate("variable" = str_replace(variable, "oceania", "Oceania")) %>% 
+    mutate("variable" = str_replace(variable, "asia", "Asia")) %>% 
+    mutate("variable" = str_replace(variable, "`south america`", "South America")) %>% 
+    mutate("variable" = str_replace(variable, "`north america`", "North America")) %>% 
+    mutate("variable" = str_replace(variable, "intercontinental", "Intercontinental"))
+  return(econometric_continent_coef)
+}
+```
+
+# Regression Analyses
+
+### Does cliometrics increase citations?df
+
+```{r}
+country_journal_stats <- read_csv("output/country_journal_stats.csv")
+data <- read_csv("output/articles_full.csv") %>% 
+  filter(publication.year < 2020) %>%
+  mutate(publication.year = as.factor(publication.year),
+         source.title = as.factor(source.title)) %>% 
+  rename("samerica" = "south america",
+         "namerica" = "north america") %>% 
+  # replace NA value in econometric_other with 0
+  mutate(econometric_other = ifelse(is.na(econometric_other) == TRUE, 0, econometric_other),
+         times.cited..all.databases = log(times.cited..all.databases+1)) #%>% 
+  #filter(continent_sum>0)
+#data <- data %>% mutate(times.cited..all.databases = log(times.cited..all.databases+1))
+# get the number of citations at the country level
+model1 <- lm(times.cited..all.databases ~  africa + namerica + samerica + europe + oceania + asia + intercontinental + publication.year + 
+                  source.title,
+                data) 
+# get the number of citations at the country level
+model2 <- lm(times.cited..all.databases ~ 
+                 #`British Isles` +
+                  #eh:`British Isles` +
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  #econometric_other:`British Isles` +
+                  publication.year + 
+                  econometric_other + 
+                  source.title,
+                data) 
+
+model3 <- lm(times.cited..all.databases ~ 
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  africa*eh +
+                  namerica*eh +
+                  oceania*eh +
+                  samerica*eh + 
+                  asia*eh +
+                  europe*eh +
+                  intercontinental*eh +
+                  #econometric_other:`British Isles` +
+                  publication.year + 
+                  econometric_other + 
+                  source.title,
+                data) 
+
+model4 <- lm(times.cited..all.databases ~ 
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  africa*eh +
+                  namerica*eh +
+                  oceania*eh +
+                  samerica*eh + 
+                  asia*eh +
+                  europe*eh +
+                  intercontinental*eh +
+                  publication.year + 
+                  econometric_other + 
+                  source.title + 
+                  n_funders +
+              # total_cumulative_citations + 
+                  `number.of.authors`,
+                data) 
+
+model5 <- lm(times.cited..all.databases ~ 
+                 econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  africa*eh +
+                  namerica*eh +
+                  oceania*eh +
+                  samerica*eh + 
+                  asia*eh +
+                  europe*eh +
+                  intercontinental*eh +
+                  publication.year + 
+                  econometric_other + 
+                  source.title + 
+                  n_funders +
+               total_cumulative_citations + 
+                  `number.of.authors`,
+                data) 
+
+
+# get the number of citations at the country level
+model1 <- lm(times.cited..all.databases ~  africa + namerica + samerica + europe + oceania + asia + intercontinental + publication.year + 
+                  source.title,
+                data) 
+# get the number of citations at the country level
+model2 <- lm(times.cited..all.databases ~ 
+                 #`British Isles` +
+                  #eh:`British Isles` +
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  #econometric_other:`British Isles` +
+                  publication.year + 
+                  econometric_other + 
+                  source.title,
+                data) 
+
+model3 <- lm(times.cited..all.databases ~ 
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  africa*eh +
+                  namerica*eh +
+                  oceania*eh +
+                  samerica*eh + 
+                  asia*eh +
+                  europe*eh +
+                  intercontinental*eh +
+                  #econometric_other:`British Isles` +
+                  publication.year + 
+                  econometric_other + 
+                  source.title,
+                data) 
+
+model4 <- lm(times.cited..all.databases ~ 
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  africa*eh +
+                  namerica*eh +
+                  oceania*eh +
+                  samerica*eh + 
+                  asia*eh +
+                  europe*eh +
+                  intercontinental*eh +
+                  publication.year + 
+                  econometric_other + 
+                  source.title + 
+                  n_funders +
+              # total_cumulative_citations + 
+                  `number.of.authors`,
+                data) 
+model1 <- lm(times.cited..all.databases ~ 
+                  africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe,
+                data) 
+model2 <- lm(times.cited..all.databases ~ 
+                  africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe +
+                  intercontinental,
+                data) 
+model3 <- lm(times.cited..all.databases ~ 
+                  africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe +
+                  intercontinental +
+                  total_cumulative_citations + number.of.authors,
+                data) 
+model4 <- lm(times.cited..all.databases ~ 
+                  africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe +
+                  intercontinental +
+                  eh + 
+                  econometric_other,
+                data) 
+model5 <- lm(times.cited..all.databases ~ 
+                  africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe +
+                  intercontinental +
+                  eh + 
+                  econometric_other + 
+                  total_cumulative_citations,
+                data) 
+model5 <- lm(times.cited..all.databases ~ 
+                  africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe +
+                  intercontinental +
+                  eh + 
+                  econometric_other + 
+                  n_funders +
+                  total_cumulative_citations + 
+                  `number.of.authors`,
+                data) 
+model6 <- lm(times.cited..all.databases ~ 
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  eh + 
+                  econometric_other + 
+                  n_funders +
+                  total_cumulative_citations + 
+                  `number.of.authors`,
+                data) 
+model7 <- model6
+# get clustered SE
+se1 <- cluster_se(model1)
+se2 <- cluster_se(model2)
+se3 <- cluster_se(model3)
+se4 <- cluster_se(model4)
+se5 <- cluster_se(model5)
+se6 <- cluster_se(model6)
+se7 <- cluster_se(model7, source.title)
+
+# extract all clustered ses
+# Extract all standard errors
+se_list <- list(
+    "model1" = se1[, "Std. Error"],
+    "model2" = se2[, "Std. Error"],
+    "model3" = se3[, "Std. Error"],
+   # "model4" = se4[, "Std. Error"],
+    "model5" = se5[, "Std. Error"],
+    "model6" = se6[, "Std. Error"]
+    #"model7" = se7[, "Std. Error"]
+  )
+
+# THIS IS WHAT I WANT TO EMPHASISE: AFRICA+ECONOMETRIC POSITIVE EFFECT CITATIONS. NOT ELSEWHERE
+
+stargazer(
+  #model1, 
+  model1, model2, model3, model5, model6, type = "latex", order = c("^africa$",
+                                                           "^oceania$",
+                                                           "^samerica$", 
+                                                           "^namerica$",
+                                                           "^asia$", 
+                                                           "^europe$",
+                                                           "^eh$",
+                                                           "^\\w*:eh$",
+                                                           "^eh:\\w*",
+                                                           "^econometric_other$",
+                                                           "econometric_other:africa:eh",
+                                                          "^econometric_other:[^h]\\w*$",
+                                                          "number.of.authors",
+                                                          "total_cumulative_citations",
+                                                           "^intercontinental"
+                                                           ),
+              covariate.labels = c("Africa",
+                              "South America",
+                              "North America",
+                              "Asia",
+                              "Europe",
+                              "EH-journal",
+                              "Econometric",
+                              "$\\; \\; \\times \\textit{Africa}$",
+                              "$\\; \\; \\times \\textit{South America}$",
+                              "$\\; \\; \\times \\textit{North America}$",
+                              "$\\; \\; \\times \\textit{Asia}$",
+                              "$\\; \\; \\times \\textit{Europe}$",
+                              "$\\; \\; \\times \\textit{Intercontinental}$",
+                              "Number of Authors",
+                              "Previous Author Citations",
+                              "Intercontinental"
+                              ),
+
+          # change dep var label
+          dep.var.labels = c("log(Citation-count)"),
+          # add line for controls
+          # change indep var labels
+          se = se_list,
+          # add line for fixed effects
+          add.lines = list(c("Year, Journal FEs", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark")
+                           #c("Robust Standard Errors", "robust", "robust", "robust", "robust", "robust", "robust", "clustered")
+                           ),
+          single.row = TRUE,
+  # reduce spacing between lines
+          omit=c("source.title", "publication.year", "oceania", "n_funders"))
+```
+
+```{r keywords}
+subset <- read_csv("output/articles_full.csv") %>% 
+  filter(publication.year <= 2019) %>%
+  mutate(publication.year = as.factor(publication.year),
+         source.title = as.factor(source.title)) %>% 
+    mutate(period = case_when(
+      publication.year %in% 1999:2000 ~ "1999-2000",
+      publication.year %in% 2001:2003 ~ "2001-2003",
+      publication.year %in% 2004:2005 ~ "2004-2005",
+      publication.year %in% 2006:2007 ~ "2006-2007",
+      publication.year %in% 2008:2009 ~ "2008-2009",
+      publication.year %in% 2010:2011 ~ "2012-2013",
+      publication.year %in% 2014:2015 ~ "2016-2017",
+      publication.year %in% 2018:2019 ~ "2018-2019",
+      publication.year %in% 2020:2021 ~ "2020-2021")
+    ) %>%
+    mutate(publication.year = as.factor(publication.year),
+           source.title = as.factor(source.title)) %>% 
+  rename("samerica" = "south america",
+         "namerica" = "north america") 
+
+for (dep_var in c("log(times.cited..all.databases + 0.1)")){
+  # REGRESSION FORMULAS
+  formula <- as.formula(paste(dep_var, "~ period + source.title + eh"))
+  #formula_c <- as.formula(paste(dep_var, "~ publication.year + source.title + africa + europe + oceania + asia + `south america` + eh*econometric_other"))
+  formula_c <- as.formula(paste(dep_var, "~ period + source.title +  eh + econometric_other + total_cumulative_citations + number.of.authors +
+                 period*(africa + europe  + oceania + samerica + asia + namerica + intercontinental)"))
+  formula_cte <- as.formula(paste(dep_var, "~ period + source.title +  eh  + total_cumulative_citations + number.of.authors +
+                 period*econometric_other*(africa + europe  + oceania + samerica + asia + namerica + intercontinental)"))
+  
+  # REGRESSIONS
+  lm_eh <-  lm(formula, subset)
+  lm_cte <- lm(formula_cte, subset)
+  lm_c <- lm(formula_c, subset)
+
+  se_eh <- robust_se(lm_eh)
+  se_cte <- robust_se(lm_cte)
+  se_c <- robust_se(lm_c)
+
+  # Extract all standard errors
+  se_list <- list(
+    se_eh[, "Std. Error"],
+    se_cte[, "Std. Error"],
+    se_c[, "Std. Error"]
+  )
+  
+  ############ REPORT RESULTS ############
+  regions <- c("africa","europe","n. america","s. america","asia")
+  
+  # ugly report: 
+  #  stargazer(lm_eh, 
+  #          lm_ct,
+  #          #lm_c,
+  #          lm_cte,
+  #          se_cteh,
+  #          #lm_total,
+  #          #lm_meca,
+  #          #lm_more,
+  #          type = "text",
+            #covariate.labels = c("Economic History",
+            #                     "Econometric", 
+            #                     regions,
+            #                     "Intercontinental",
+             #                    "Econometric $\\times$ Economic History",
+              #                  paste0("Econometric $\\times$  ", regions),
+               #                  "Econometric $\\times$ Intercontinental",
+                #                 "Economic History $\\times$ Econometric  $\\times$ Intercontinental",
+                 #                paste0("Economic History $\\times$  Econometric  $\\times$ ", regions),
+                  #               paste0("Economic History $\\times$ ", regions),
+                   #             "Economic History $\\times$ Intercontinental"),
+            # add line for omitted vars
+  #          dep.var.labels = "Citations",
+  #          omit = c("^(source.title:\\w+)$", "^(publication.year:\\d+)$"),
+            #omit.labels = c("Journal FE", "Year FEs"),
+            #omit.yes.no = c('\\cmark', '\\xmark'),
+  #          se = se_list
+  #          #single.row = TRUE
+  #)
+    
+  # PLOTS
+  continent_coef <- yearmodel_to_plotting_df(lm_c, "period\\d+-\\d+:(?!.*econometric)(?!.*eh)", std_errors = se_c)
+
+  econometric_continent_coef <- yearmodel_to_plotting_df(lm_cte, "period\\d+-\\d+:\\w+:", std_errors = se_cte) 
+  eh_continent_coef <- yearmodel_to_plotting_df(lm_cteh, "publication.year\\d+:eh(?!.*econometric)", std_errors = se_cteh)
+  econometric_contient_eh_coef <- yearmodel_to_plotting_df(lm_meca, "publication.year\\d+:eh:econometric_other:", std_errors = se_meca)
+  
+  # plot
+  
+  plot1 <- econometric_continent_coef %>% 
+    plot_coefs("Econometric x Continent") +
+    ggtitle(paste(dep_var, "regression")) %>%
+    print()
+  plot2 <- continent_coef %>%
+    #filter(!(variable %in% c("Oceania", "South America"))) %>% 
+    #filter(year>2001) %>% 
+    plot_coefs("Continent")  +
+    ggtitle(paste(dep_var, "regression")) %>% 
+    print()
+  plot3 <- econometric_contient_eh_coef %>%
+    filter(!(variable %in% c("Oceania", "South America"))) %>% 
+    plot_coefs("Econometric x Continent x Economic History") +
+    ggtitle(paste(dep_var, "regression")) %>% 
+    print()
+  plot4 <- eh_continent_coef %>%
+    filter(!(variable %in% c("Oceania", "South America"))) %>% 
+    plot_coefs("Economic History x Continent") +
+    ggtitle(paste(dep_var, "regression")) %>% 
+    print()
+  
+  plot1 # econometrics isnt driving the change alone
+  plot2
+  plot3 # eh isnt driving the change
+  plot4
+  # save
+  ggsave(paste0("output/plot_", dep_var, "_on_METRICtimesCONT.png"), plot1, width = 10, height = 5)
+  ggsave(paste0("output/plot_", dep_var, "_on_timesCONT.png"), plot2, width = 10, height = 5)
+  ggsave(paste0("output/plot_", dep_var, "_on_METRICtimesEHtimesCONT.png.png"), plot3, width = 10, height = 5)
+  ggsave(paste0("output/plot_", dep_var, "_on_EHtimesCONT.png"), plot4, width = 10, height = 5)
+}
+```
+
+## Keywords
+
+```{r with continent controls only}
+data <- read_csv("output/articles_full.csv")
+data <- data %>% # fill in missing 'econometrics'
+  mutate(econometric_other = ifelse(is.na(econometric_other) == TRUE, 0, econometric_other)) %>%
+  mutate(eh = ifelse(is.na(eh) == TRUE, 0, eh)) %>% 
+  # remove 2020s
+  filter(publication.year < 2020)
+
+data <- data %>% 
+  filter(publication.year < 2020) %>%
+  mutate(publication.year = as.factor(publication.year),
+         source.title = as.factor(source.title)) %>% 
+  rename("samerica" = "south america",
+         "namerica" = "north america") %>% 
+  mutate(novelty = new_keywords)
+           #ifelse(n_keywords == 0 | is.na(new_keywords), NA, (new_keywords / n_keywords)))
+
+model1 <- lm(novelty ~ 
+                  publication.year*(africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe + intercontinental) + 
+                  `number.of.authors` +
+                  source.title,
+                data) 
+
+model2 <- lm(novelty ~ 
+                  publication.year*(africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe + 
+                  intercontinental) + 
+                  log(total_cumulative_citations+1) +
+                  `number.of.authors` +
+                  publication.year + 
+                  source.title,
+                data) 
+
+model3 <- lm(novelty ~ 
+                  publication.year*(africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe + 
+                  intercontinental) + 
+                  log(total_cumulative_citations+1) +
+                  log(times.cited..all.databases+1) +
+                  `number.of.authors` +
+                  publication.year + 
+                  source.title,
+                data) 
+
+model4 <- lm(novelty ~ 
+                  publication.year*(africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe + 
+                  intercontinental) + 
+                  log(total_cumulative_citations+1) +
+                  log(times.cited..all.databases+1) +
+                  `number.of.authors` +
+                  publication.year + 
+                  source.title + 
+               eh,
+                data) 
+model5 <- lm(novelty ~ 
+                  publication.year*(africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe + 
+                  intercontinental) + 
+                   log(total_cumulative_citations+1) +
+                  log(times.cited..all.databases+1) +
+                  `number.of.authors` +
+                  publication.year + 
+                  source.title + 
+               eh*econometric_other,
+                data) 
+
+se1 <- robust_se(model1)
+se2 <- robust_se(model2)
+se3 <- robust_se(model3)
+se4 <- robust_se(model4)
+se5 <- robust_se(model5)
+
+# extract all clustered ses
+# Extract all standard errors
+se_list <- list(
+    #"model1" = se1[, "Std. Error"],
+    "model2" = se2[, "Std. Error"],
+    "model3" = se3[, "Std. Error"],
+    "model4" = se4[, "Std. Error"],
+    "model5" = se5[, "Std. Error"]
+  )
+
+# THIS IS WHAT I WANT TO EMPHASISE: AFRICA+ECONOMETRIC POSITIVE EFFECT CITATIONS. NOT ELSEWHERE
+
+stargazer(
+  #model1, 
+  model1, model2, model3, model5, 
+  type = "latex",
+          # order =
+          # change dep var label
+          dep.var.labels = c("\\# New Keywords"),
+          # change indep var labels
+          covariate.labels = c("log(Author Previous Citations)",
+                              "log(Article Citations)",
+                              "Number of Authors",
+                              "Economic History",
+                              "Econometric",
+                              "Econometric $\\times$ Economic History"),
+  
+          # add line for fixed effects
+          add.lines = list(c("Year, Journal FEs", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark"),
+                           c("Continent Controls", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark")),
+          se = se_list,
+          # add line for fixed effects
+          #add.lines = list(c("Year, Journal FEs", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark")
+                           #c("Robust Standard Errors", "robust", "robust", "robust", "robust", "robust", "robust", "clustered")),
+          single.row = TRUE,
+  # reduce spacing between lines
+          omit=c("africa",
+                 "namerica",
+                 "oceania",
+                 "samerica",
+                 "asia",
+                 "europe",
+                 "intercontinental",
+                 "source.title", "publication.year"))
+# summarise keywords by continent
+```
+
+```{r}
+data <- read_csv("output/articles_full.csv")
+data <- data %>% # fill in missing 'econometrics'
+  mutate(econometric_other = ifelse(is.na(econometric_other) == TRUE, 0, econometric_other)) %>%
+  mutate(eh = ifelse(is.na(eh) == TRUE, 0, eh)) %>% 
+  # remove 2020s
+  filter(publication.year < 2020)
+
+data <- data %>% 
+  filter(publication.year < 2020) %>%
+  mutate(publication.year = as.factor(publication.year),
+         source.title = as.factor(source.title)) %>% 
+  rename("samerica" = "south america",
+         "namerica" = "north america")
+
+model1 <- lm(new_keywords ~ africa + namerica + samerica + europe + oceania + asia + intercontinental + publication.year + 
+                  source.title,
+                data) 
+
+model2 <- lm(new_keywords ~ 
+                  africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe +
+                  intercontinental + publication.year + 
+                  source.title,
+                data) 
+
+model3 <- lm(new_keywords ~ 
+                  africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe +
+                  intercontinental +
+                  total_cumulative_citations + 
+                  number.of.authors + 
+                  publication.year + 
+                  source.title,
+                data) 
+
+model4 <- lm(new_keywords ~ 
+                  africa +
+                  namerica +
+                  oceania +
+                  samerica + 
+                  asia +
+                  europe +
+                  intercontinental +
+                  eh + 
+                  econometric_other + 
+                  total_cumulative_citations +
+                  publication.year + 
+                  source.title,
+                data) 
+
+model6 <- lm(new_keywords ~ 
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  eh + 
+                  n_funders +
+                  total_cumulative_citations + 
+                  `number.of.authors` +
+                  publication.year + 
+                  times.cited..all.databases +
+                  source.title,
+                data) 
+
+model7 <- lm(new_keywords ~ 
+                  eh*africa +
+                  eh*namerica +
+                  eh*oceania +
+                  eh*samerica + 
+                  eh*asia +
+                  eh*europe +
+                  africa + samerica + asia + europe + oceania + namerica +
+                  eh + 
+                  times.cited..all.databases + 
+                  econometric_other + 
+                  n_funders +
+                  total_cumulative_citations + 
+                  `number.of.authors` + 
+                  publication.year +
+                  intercontinental +
+                  source.title,
+                data) 
+
+model8 <- lm(new_keywords ~ 
+                  eh*africa +
+                  eh*namerica +
+                  eh*oceania +
+                  eh*samerica + 
+                  eh*asia +
+                  eh*europe +
+                  eh*intercontinental +
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  n_funders +
+                  total_cumulative_citations + 
+                  `number.of.authors` + publication.year + 
+                times.cited..all.databases +
+                  source.title,
+                data) 
+
+model_restricted <- lm(new_keywords ~ 
+                  eh*namerica +
+                  eh*oceania +
+                  eh*samerica + 
+                  eh*asia +
+                  eh*europe +
+                  eh*intercontinental +
+                  econometric_other*africa +
+                  econometric_other*namerica +
+                  econometric_other*oceania +
+                  econometric_other*samerica + 
+                  econometric_other*asia +
+                  econometric_other*europe +
+                  econometric_other*intercontinental +
+                  n_funders +
+                  total_cumulative_citations + 
+                  `number.of.authors` + publication.year + 
+                  times.cited..all.databases +
+                  source.title,
+                data) # 'africa' and 'eh*africa' are excluded
+anova_results <- anova(model_restricted, model8)
+stargazer(anova_results, type = "latex", title = "ANOVA Test Results", label = "tab:anova_results")
+
+
+
+
+# get clustered SE
+se1 <- robust_se(model1)
+se2 <- robust_se(model2)
+se3 <- robust_se(model3)
+se4 <- robust_se(model4)
+se5 <- robust_se(model5)
+se6 <- robust_se(model6)
+se7 <- robust_se(model7)
+se8 <- robust_se(model8)
+
+# extract all clustered ses
+# Extract all standard errors
+se_list <- list(
+    "model1" = se1[, "Std. Error"],
+    "model2" = se2[, "Std. Error"],
+   "model3" = se3[, "Std. Error"],
+    "model4" = se4[, "Std. Error"],
+   # "model4" = se4[, "Std. Error"],
+   #"model5" = se5[, "Std. Error"],
+    "model6" = se6[, "Std. Error"],
+    "model7" = se7[, "Std. Error"],
+    "model8" = se8[,"Std. Error"]
+  )
+
+# THIS IS WHAT I WANT TO EMPHASISE: AFRICA+ECONOMETRIC POSITIVE EFFECT CITATIONS. NOT ELSEWHERE
+
+stargazer(
+  #model1, 
+  model1, model2, model3, model4, model6,model7, model8, type = "text", order = c("^africa$",
+                                                           "^oceania$",
+                                                           "^samerica$", 
+                                                           "^namerica$",
+                                                           "^asia$", 
+                                                           "^europe$",
+                                                           "^eh$",
+                                                           "^\\w*:eh$",
+                                                           "^eh:\\w*",
+                                                           "^econometric_other$",
+                                                           "econometric_other:africa:eh",
+                                                          "^econometric_other:[^h]\\w*$",
+                                                          "number.of.authors",
+                                                          "total_cumulative_citations",
+                                                           "^intercontinental"
+                                                           ),
+
+          # change dep var label
+          dep.var.labels = c("\\# New Keywords"),
+          # add line for controls
+          # change indep var labels
+          se = se_list,
+          # add line for fixed effects
+          add.lines = list(c("Year, Journal FEs", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark", "\\cmark")
+                           #c("Robust Standard Errors", "robust", "robust", "robust", "robust", "robust", "robust", "clustered")
+                           ),
+          single.row = TRUE,
+  # reduce spacing between lines
+          omit=c("source.title", "publication.year", "oceania", "n_funders"))
+# summarise keywords by continent
+data %>% 
+  group_by(africa, namerica, oceania, samerica, asia, europe) %>% 
+  summarise(mean(new_keywords, na.rm = TRUE), sd(new_keywords, na.rm = TRUE))
+```
+
+```{r}
+subset <- read_csv("output/articles_full.csv") %>% 
+  #mutate(publication.date<2021) %>% 
+  mutate(publication.year = as.factor(publication.year),
+         source.title = as.factor(source.title)) %>% 
+    mutate(period = case_when(
+      publication.year %in% 1999:2001 ~ "1999-2001",
+      publication.year %in% 2002:2004 ~ "2002-2004",
+      publication.year %in% 2005:2007 ~ "2005-2007",
+      publication.year %in% 2008:2010 ~ "2008-2010",
+      publication.year %in% 2011:2013 ~ "2011-2013",
+      publication.year %in% 2014:2016 ~ "2014-2016",
+      publication.year %in% 2017:2019 ~ "2017-2019",
+      publication.year %in% 2020:2021 ~ "2020-2021"
+    )) %>%
+    filter(period != "2020-2021") %>%  # add 0 for missing values of eh, econometric_other, and keywords
+  mutate(econometric_other = ifelse(is.na(econometric_other) == TRUE, 0, econometric_other),
+         eh = ifelse(is.na(eh) == TRUE, 0, eh),
+         new_keywords = ifelse(is.na(new_keywords) == TRUE, "", new_keywords))
+ # filter(continent_sum > 0)# %>% 
+ # filter(!(source.title %in% history_journs))
+  #mutate(period = case_when(
+   #   publication.year %in% 1999:2004 ~ "1999-2004",
+    #  publication.year %in% 2005:2010 ~ "2005-2010",
+     # publication.year %in% 2011:2016 ~ "2011-2016",
+   #   publication.year %in% 2017:2021 ~ "2017-2021",
+  #    TRUE ~ "2021"
+    #  )
+  #  )
+  
+
+for (dep_var in c("log(times.cited..all.databases+1)", "new_keywords")){
+  formula_total <- as.formula(paste(dep_var, "~ period + source.title + eh + econometric_other +
+  total_cumulative_citations + n_funders + number.of.authors +
+                 period*(africa + europe + oceania + `south america`+`north america`+ asia + intercontinental)*econometric_other"))
+  
+  formula_totaltotal <- as.formula(paste(dep_var, "~ period + source.title + eh + econometric_other +
+  total_cumulative_citations + n_funders + number.of.authors +
+                 period*(africa + europe + oceania + `south america`+`north america`+ asia + intercontinental)*eh*econometric_other"))
+
+  lm_total <- lm(formula_total, subset)
+  lm_totaltotal <- lm(formula_totaltotal, subset)
+
+  se_total <- robust_se(lm_total)
+  se_totaltotal <- robust_se(lm_totaltotal)
+  
+  econometric_continent_coef <- yearmodel_to_plotting_df(lm_total, "period\\d+-\\d+:econometric_other:", std_errors = se_total)
+  continent_coef <- yearmodel_to_plotting_df(lm_total, "period\\d+-\\d+:(?!.*econometric)(?!.*eh)", std_errors = se_total)
+  eh_continent_coef <- yearmodel_to_plotting_df(lm_totaltotal, "period\\d+-\\d+:eh(?!.*econometric)", std_errors = se_totaltotal)
+  econometric_contient_eh_coef <- yearmodel_to_plotting_df(lm_totaltotal, "period\\d+-\\d+:eh:econometric_other:", std_errors = se_totaltotal)
+  
+  #econometric_continent_coef <- yearmodel_to_plotting_df(lm_total, "period\\d+-\\d+:econometric_other:", std_errors = se_total)
+  #continent_coef <- yearmodel_to_plotting_df(lm_total, "period\\d+-\\d+:(?!.*econometric)(?!.*eh)", std_errors =  se_total)
+ # eh_continent_coef <- yearmodel_to_plotting_df(lm_total, "period\\d+-\\d+:eh(?!.*econometric)", std_errors = se_total)
+ # econometric_contient_eh_coef <- yearmodel_to_plotting_df(lm_total, "period\\d+-\\d+:eh:econometric_other:", std_errors = se_total)
+  
+  # Plot
+  plot1 <- econometric_continent_coef %>% filter(year!="2002") %>% 
+               #filter(!(variable %in% c("Oceania", "South America"))) %>% 
+    plot_coefs("Econometric x Continent") + # bring legend higher
+    theme(legend.position = "none", 
+          axis.text.x = element_text(angle=0, size=12)) 
+  plot2 <- continent_coef %>% filter(year!="2002")  %>%
+    #filter(!(variable %in% c("Oceania", "South America"))) %>% 
+    plot_coefs("Continent")  + # bring legend higher
+    theme(legend.position = c(0.5,-.2), 
+          axis.text.x = element_text(angle=0, size=12),
+          legend.text = element_text(size=12)) 
+  plot3 <- eh_continent_coef  %>% 
+    filter(year!="2002") %>% 
+               #filter(!(variable %in% c("Oceania", "South America"))) %>% 
+    plot_coefs("Economic History x Continent") + # bring legend higher
+    theme(legend.position = "none", 
+          axis.text.x = element_text(angle=0, size=12),
+          legend.text = element_text(size=12)) 
+  plot4 <- econometric_contient_eh_coef %>%
+    plot_coefs("Economic History x Econometrics x Continent")  + # bring legend higher
+    theme(legend.position = "none", 
+          axis.text.x = element_text(angle=0, size=12),
+          legend.text = element_text(size=12)) 
+  
+  print(plot1)
+  print(plot2)
+  print(plot3)
+  
+  grid.arrange(plot1, plot2, ncol = 1, nrow = 2)
+  # reduce space between top plot and bottom plot
+  grid.arrange(plot1, plot2, ncol=1, nrow=2, heights=c(2, 1))
+}
+
+# not for for year intervals i can find a divergence in the cowefficeints for econometric x contiennt and continent for asia
+# note that these results are sensitive to the choice of economic journals incuded. 
+```
+
+## Make keywords/continent
+
+```{r}
+data <- read_csv("output/articles_full.csv")
+
+# get entropy coefficient
+keywords_freq <- function(row){
+  "get the frequency table of keys in the string where keys are seperated by ;"
+  new <- row %>%
+    unlist() %>%
+    str_split(";") %>%
+    unlist() %>%
+    str_trim() %>%
+    table() %>%
+    as.data.frame() %>%
+    arrange(desc(Freq)) %>% 
+    rename("keyword" = ".", "Freq" = Freq)
+  return(new)
+}
+get_count <- function(frequencydf){
+  return(nrow(frequencydf))
+}
+
+# take all possible keywords in that year. 
+
+keywords_continent <- c()
+# get keywords per continent per half decade
+for (continent in c("africa", "asia", "europe", "north america", "oceania", "south america")) {
+  subset <- data %>% filter(!!sym(continent) == 1)
+  if (nrow(subset) == 0) {
+    print("skipped")
+    next
+  }
+  subset <- subset %>% 
+    group_by(half_decade, eh) %>%
+    summarize(keywords = make_keywords(keywords.plus)) %>%
+    ungroup()
+  subset$gini <-  lapply(subset$keywords, function(x)
+           x %>% keywords_freq() %>% pull(Freq) %>% gini_coefficient()) %>% unlist()
+  subset$n_keywords <-  lapply(subset$keywords, function(x)
+           x %>% keywords_freq() %>% 
+           get_count()) %>% 
+             unlist()
+  subset$continent <- continent
+  keywords_continent <- bind_rows(keywords_continent, subset)
+}
+
+# plot all 
+plot_ginikeywordseh <- keywords_continent %>%
+  filter(!(continent %in% c("Other", "oceania")), 
+         eh==1, 
+         half_decade != "2020s") %>% 
+  ggplot(aes(x = half_decade, y = gini, fill = continent)) +
+  geom_col(position = "dodge", col="black") +
+  scale_fill_discrete() +
+  scale_y_continuous(limits = c(0, .55)) +
+  labs(x = "", y = "Gini(Keywords)") +
+  # chagnge fill label texts
+  scale_fill_discrete(labels = c("Africa", "Asia", "Europe", "North America", "South America")) +
+  theme_minimal() +
+  theme(legend.position = "none", 
+        legend.title = element_blank(),
+        text = element_text(size = 20, family = "serif"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank()) #+ # add text on top right corner for "Economic History"
+  #annotate("text", x = 1.5, y = .5, label = "(a) Economic History Journals", size = 6, family = "serif")
+  
+  
+
+plot_ginikeywordsecon <- keywords_continent %>%
+  filter(!(continent %in% c("Other", "oceania")), 
+         eh==0, 
+         half_decade != "2020s") %>% 
+  ggplot(aes(x = half_decade, y = gini, fill = continent)) +
+  geom_col(position = "dodge", col="black") +
+  scale_y_continuous(limits = c(0, .55)) +
+  scale_fill_discrete() +
+  labs(x = "", y = "Gini(Keywords)") +
+  # chagnge fill label texts
+  scale_fill_discrete(labels = c("Africa", "Asia", "Europe", "North America", "South America")) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        text = element_text(size = 20, family = "serif"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank()) #+ # add text on top right corner for "Economic History"
+  #annotate("text", x = 1.5, y = .5, label = "(b) Economics Journals", size = 6, family = "serif")
+
+
+plot_ginikeywordseh
+plot_ginikeywordsecon
+# combine plots on top and bottom
+library(gridExtra)
+plot <- grid.arrange(plot_ginikeywordseh,plot_ginikeywords, ncol = 1)
+
+plot_nkeywords <- keywords_continent %>%
+  filter(!(continent %in% c("Other", "Oceania"))) %>% na.omit() %>% 
+  ggplot(aes(x = half_decade, y = log(n_keywords), fill = continent)) +
+  geom_col(position = "dodge", col="black") +
+  scale_fill_discrete() +
+  labs(x = "Half-Decade", y = "Number of Keywords") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+# save
+#write_csv(keywords_freq, "output/keywords_data_keywordsplus.csv")
+write_csv(keywords_continent, "output/keywords_data_continent.csv")
+# save plots
+ggsave("output/plot_ginisehandecon.png", plot, width = 8, height = 10)
+ggsave("output/plot_ginikeywordseh.png", plot_ginikeywordseh, width = 7, height = 5)
+ggsave("output/plot_ginikeywordsecon.png", plot_ginikeywordsecon, width = 7, height = 6)
+
+```
+```{r keywords across whole period}
+
+keywords_continent <- c()
+for (continent in c("africa", "asia", "europe", "north america", "oceania", "south america")) {
+  subset <- data %>% filter(!!sym(continent) == 1)
+  if (nrow(subset) == 0) {
+    print("skipped")
+    next
+  }
+  subset <- subset %>% 
+    group_by(eh) %>%
+    summarize(keywords = make_keywords(keywords.plus)) %>%
+    ungroup()
+  subset$gini <-  lapply(subset$keywords, function(x)
+           x %>% keywords_freq() %>% pull(Freq) %>% gini_coefficient()) %>% unlist()
+  subset$n_keywords <-  lapply(subset$keywords, function(x)
+           x %>% keywords_freq() %>% 
+           get_count()) %>% 
+             unlist()
+  subset$continent <- continent
+  keywords_continent <- bind_rows(keywords_continent, subset)
+}
+
+# plot all 
+plot_ginikeywordseh <- keywords_continent %>%
+  filter(!(continent %in% c("Other", "oceania"))) %>% 
+  ggplot(aes(x=eh, y = gini, fill = continent)) +
+  geom_col(position = "dodge", col="black") +
+  scale_fill_discrete() +
+  #scale_y_continuous(limits = c(0, .55)) +
+  labs(x = "", y = "Gini(Keywords)") +
+  # chagnge fill label texts
+  scale_fill_discrete(labels = c("Africa", "Asia", "Europe", "North America", "South America")) +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        text = element_text(size = 20, family = "serif"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank()) 
+
+plot_ginikeywordseh
+#+ # add text on top right corner for "Economic History"
+  #annotate("text", x = 1.5, y = .5, label = "(a) Economic History Journals", size = 6, family = "serif")
+  
+
+```
+# Country stats
+
+```{r create country level dataframe}
+data <- read_csv("output/articles_full.csv")
+country_stats <- read_csv("output/world_countries.csv")
+
+# FUNCTIONS
+top_x_keyword <- function(keywords, x){
+  print(paste0("keywords: ",keywords))
+  keyword_split <- keywords %>% 
+    str_split(";") %>% 
+    unlist()
+  topx <- ifelse(as.numeric(length(keyword_split)) < x,
+                 "None",
+                 names(sort(table(keyword_split), 
+                            decreasing = TRUE))[x]) %>% 
+    str_trim()
+  topx <- ifelse(is.na(topx) | topx == "", "None", topx)
+  print(paste0("length of keywords list: ", as.numeric(length(keywords))))
+  print(paste0("top ",x, " : ",topx))
+  return(as.character(topx))
+}
+
+# DATA
+#data <- data %>% filter(publication.year < 2019)
+min_year <- min(data$publication.year)
+max_year <- max(data$publication.year)
+country_journal_stats <- data.frame()
+
+# LOOP
+for (country in country_stats$Country) {
+  subset <- data %>% filter(str_detect(country_studied, country))
+  if (nrow(subset) == 0) {
+    print("skipped")
+    next
+  }
+  stats <- subset %>%
+    group_by(publication.year, source.title,eh) %>%
+    summarize(
+      n_articles = n(),
+      ave_authors = mean(number.of.authors, na.rm = TRUE),
+      sd_authors = sd(number.of.authors, na.rm = TRUE),
+      tot_cite = sum(times.cited..wos.core, na.rm = TRUE),
+      ave_cite = mean(times.cited..wos.core, na.rm = TRUE),
+      sd_cite = sd(times.cited..wos.core, na.rm = TRUE),
+      M_cit = max(times.cited..wos.core, na.rm = TRUE),
+      keywords= make_keywords(keywords.plus),
+      top1keyword = top_x_keyword(keywords, x=1),
+      top2keyword = top_x_keyword(keywords, x=2),
+      top3keyword = top_x_keyword(keywords, x=3),
+      n_keywords = ifelse(top1keyword == "None", 0, keywords %>%
+                            str_split(";") %>% 
+                            unlist() %>% 
+                            length()),
+      keyword_entropy = {
+        if (length(keywords) > 0)
+          entropy_func(table(keywords))
+        else
+          NA
+      },
+      funders = make_keywords(funding.orgs),
+      top1funder = top_x_keyword(funders, x=1),
+      top2funder = top_x_keyword(funders, x=2),
+      top3funder = top_x_keyword(funders, x=3),
+      n_funding = ifelse(top1funder == "None", 0, funders %>% 
+                           str_split(";") %>% 
+                           unlist() %>% 
+                           length()),
+      n_econometric_margo = sum(econometric_margo, na.rm = TRUE),
+      n_econometric_other = sum(econometric_other, na.rm = TRUE),
+    )
+  continent_obs <- country_stats$Continent[country_stats$Country == country]
+  stats <- stats %>% mutate("country" = country,
+                            "continent" = continent_obs)
+  country_journal_stats <- bind_rows(country_journal_stats, stats)
+  print(paste0("Country: ", country, " has ", nrow(subset), " observations",
+               " with an average of ", mean(subset$number.of.pages, na.rm = TRUE), " pages per article",
+               " and ", mean(subset$number.of.authors, na.rm = TRUE), " authors per article"))
+}
+rm(continent_obs, country, stats, subset, continent, min_year, max_year)
+
+# get the number of new keywords, first compute keywords in each year
+keywords_year <- country_journal_stats %>%
+  select(publication.year, keywords)
+keywords_year <- keywords_year %>%
+  filter(!is.na(keywords)) %>%
+  group_by(publication.year) %>%
+  summarize(keywords = make_keywords(keywords)) 
+# now count new for each source.title and year
+country_journal_stats$new_keywords <- apply(country_journal_stats, 1, function(x) count_new_keywords(x["keywords"], x["publication.year"]))
+
+# SAVE
+
+eh_journals <- data %>% filter(eh == 1) %>% select(source.title) %>% unique()
+
+country_journal_stats <- country_journal_stats %>%
+  mutate(eh = ifelse(source.title %in% eh_journals$source.title, 1, 0))
+
+write_csv(country_journal_stats, "output/country_journal_stats.csv")
+```
+
+# Data Descriptives
+
+```{r}
+library(xtable)
+data <- read_csv("output/articles_full.csv")
+country_journal_stats <- read_csv("output/country_journal_stats.csv")
+
+# country_journal_stats <- country_journal_stats %>% filter(publication.year <2019) < - pprevious dataset
+summary_journal <- country_journal_stats %>% 
+  group_by(source.title, eh) %>%
+  summarise("EH Articles" = sum(n_articles),
+            "Ave.Authors" = mean(ave_authors),
+            "EH Citations" = sum(tot_cite),
+            "New Keywords" = sum(n_keywords),
+            "Share of Econometric Articles" = sum(n_econometric_other) / sum(n_articles),
+            "First EH article in WoS" = min(publication.year)) %>% 
+  # sort by ascending eh
+  arrange(desc(eh), desc(`EH Articles`)) %>% 
+  rename("Journal" = "source.title") %>% 
+  select(-eh)
+
+print(xtable(summary_journal, 
+             type = "latex", # avoid rownames
+             booktabs = TRUE,
+             latex.environments = "center", # center table
+             include.rownames = FALSE, # avoid numbers 
+             ), 
+      file = "summarystatsjournals.tex")
+
+summary_journal
+
+country_journal_stats %>% #filter(publication.year <2019) %>% 
+  summarise("EH Articles" = sum(n_articles),
+            "Ave.Authors" = mean(ave_authors),
+            "EH Citations" = sum(tot_cite),
+            "New Keywords" = sum(n_keywords),
+            "Share of Econometric Articles" = sum(n_econometric_margo) / sum(n_articles),
+            "First EH article in WoS" = min(publication.year)) 
+```
+
+```{r}
+# all generate a table for the number of articles and citations per region per journal per five years
+country_journal_stats <- read_csv("output/country_journal_stats.csv")
+country_journal_stats <- country_journal_stats %>% filter(publication.year < 2020)
+
+# create a table
+table_country_journal_stats <- country_journal_stats %>%
+  mutate("fouryear" = case_when(
+    publication.year %in% 1999:2009 ~ "1999-2010",
+    publication.year %in% 2010:2019 ~ "2010-2019"
+  )) %>%
+  mutate("eh" = ifelse(eh == 1, "Economic History", "Economics")) %>%
+  group_by(fouryear, continent, eh) %>%
+  summarize("\\# Articles" = sum(n_articles),
+            "\\# Citations" = sum(tot_cite),
+            "Most Popular Keyword" = paste0(names(sort(table(top1keyword), decreasing = TRUE))[1],", ",
+                                            names(sort(table(top1keyword), decreasing = TRUE))[2],", ",
+                                            names(sort(table(top1keyword), decreasing = TRUE))[3],"."), # the top keyword, the top second keyword, and the top third keyword across years. A better measure might be to take all three and then selecte the top three
+            "\\# Keywords" = sum(n_keywords),
+            "\\% Econometric" = sum(n_econometric_other) / sum(n_articles)) %>% 
+  # replace all "None occurences in "Most Popular Keywords with "" using gsub
+  mutate("Most Popular Keyword" = gsub("None,", "", `Most Popular Keyword`),
+         "Most Popular Keyword" = gsub("NA", "", `Most Popular Keyword`),
+         "Most Popular Keyword" = gsub(", ,", "", `Most Popular Keyword`)) %>% 
+  rename("Half-Decade" = fouryear,
+         "Continent" = continent,
+         "Journal-Field" = eh) %>% # print as latex table
+  xtable(type = "latex",
+         booktabs = TRUE,
+         latex.environments = "center",
+         include.rownames = FALSE)
+  
+              
+```
+
+### plot new keywords over time
+
+```{r compare keywrods data}
+library(wordcloud)
+country_journal_stats <- read_csv("output/country_journal_stats.csv")
+data <- read_csv("output/articles_full.csv")
+# make wordclouds for keywords by continent
+keywords_continent <- c()
+for (continent in c("africa", "asia", "europe", "north america", "oceania", "south america")) {
+  subset <- data %>% filter(!!sym(continent) == 1)
+  if (nrow(subset) == 0) {
+    print("skipped")
+    next
+  }
+  subset <- subset %>% 
+    group_by(publication.year) %>%
+    summarize(keywords = make_keywords(keywords.plus)) %>%
+    ungroup()
+  subset$continent <- continent
+  keywords_continent <- bind_rows(keywords_continent, subset)
+}
+
+# plot all
+for (continent_plotted in c("africa", "asia", "europe", "north america", "south america")) {
+  
+  png(paste0("output/wordcloud_", continent_plotted, ".png"), width = 800, height = 800)
+  
+  keywords_continent %>%
+    filter(continent == continent_plotted) %>% 
+    pull(keywords) %>% 
+    wordcloud(min.freq = 1, 
+              max.words = 100, 
+              random.order = FALSE, 
+              rot.per = 0.35, 
+              colors = brewer.pal(8, "Dark2"), 
+              # add title
+              main = paste0("Keywords in ", continent_plotted),
+              )
+  # save without using ggsave nor png()
+  dev.off()
+}
+
+
+```
+
+```{r}
+Keywords<- country_journal_stats %>%
+  group_by(publication.year, top1keyword) %>%
+  summarise(n_articles = sum(n_articles)) %>%
+  ungroup() %>%
+  arrange(publication.year, desc(n_articles))
+
+# plot keywords entropy over time
+summary_data <- country_journal_stats %>%
+  group_by(publication.year, continent) %>%
+  summarise(keyword_entropy = mean(keyword_entropy, na.rm = TRUE),
+            n_new_keywords_per_article = sum(new_keywords/sum(n_articles), na.rm = TRUE)) %>%
+  ungroup()
+
+# Create the plot
+plot_changes <- summary_data %>%
+  ggplot(aes(x = publication.year, y = keyword_entropy, col = continent)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 1)) +
+  labs(x = "Year", y = "Entropy") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        # change x axis angle
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif")) 
+
+
+# plot keywords entropy over time
+summary_data <- country_journal_stats %>%
+  group_by(publication.year, continent, eh) %>%
+  summarise(keyword_entropy = mean(keyword_entropy, na.rm = TRUE),
+            n_new_keywords_per_article = sum(new_keywords/sum(n_articles), na.rm = TRUE)) %>%
+  ungroup()
+
+# apply smoothing for the plot_changes_new
+summary_data <- summary_data %>%
+  arrange(continent, publication.year, eh) %>%
+  group_by(continent) %>%
+  mutate(n_new_keywords_smoothed = rollmean(n_new_keywords_per_article, k = 5, fill = NA, align = 'center')) %>%
+  ungroup()
+
+# Replace NA values with the original n_new_keywords_per_article where rolling mean is not applicable
+summary_data$n_new_keywords_smoothed[is.na(summary_data$n_new_keywords_smoothed)] <- summary_data$n_new_keywords_per_article[is.na(summary_data$n_new_keywords_smoothed)]
+
+# Create the plot
+plot_changes_new <- summary_data %>%
+  subset(publication.year>2003) %>% 
+  ggplot(aes(x = publication.year, y = n_new_keywords_smoothed, col = continent)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 1)) +
+  labs(x = "Year", y = "New Keywords") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        # change x axis angle
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif")) + 
+  facet_wrap(~eh)
+
+print(plot_changes)
+print(plot_changes_new)
+```
+
+### Cliometrics is not Euroexclusive
+
+```{r Quantification and being Econ increases Citations}
+# aggregate econometric article counts to five year periods
+country_journal_stats <- read_csv("output/country_journal_stats.csv")
+
+# by five years
+country_journal_stats <- country_journal_stats %>% 
+  mutate(five_year = case_when(
+    publication.year %in% 1999:2003 ~ "1999-2003",
+    publication.year %in% 2004:2008 ~ "2004-2008",
+    publication.year %in% 2009:2013 ~ "2009-2013",
+    publication.year %in% 2014:2020 ~ '2014-2019',
+    TRUE ~ paste0('2019-',max(publication.year))
+  )) %>% 
+  mutate(eh = ifelse(is.na(eh), 0, eh),
+         n_econometric_other = ifelse(is.na(n_econometric_other), 0, n_econometric_other))
+# Summarize the data
+summary_data <- country_journal_stats %>%
+  filter(five_year != paste0('2019-',max(publication.year))) %>% 
+  group_by(five_year, continent, eh) %>%
+  summarise(n_articles = sum(n_articles), 
+            n_econometric_margo = sum(n_econometric_margo),
+            n_econometric_other = sum(n_econometric_other),
+            n_citations = sum(tot_cite)) %>%
+  ungroup()
+
+# Create the plot
+plot_changes_eh <- summary_data %>% filter(continent != "Australia") %>% 
+  # sum across eh and non eh
+  group_by(five_year, continent) %>%
+  summarise(n_articles = sum(n_articles),
+            n_econometric_margo = sum(n_econometric_margo),
+            n_econometric_other = sum(n_econometric_other)) %>%
+# complete(five_year, continent, fill = list(n_articles = 0, n_econometric_margo = 0, n_econometric_other = 0)) %>%
+  ggplot(aes(x = five_year, y = n_econometric_margo/n_articles, fill = continent)) +
+  geom_col(alpha = 0.8, size = 0.5, position = "dodge", col = "black") +
+  scale_fill_discrete() +
+  labs(x = "", y = "Share of identified \n Econometric Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(), # fix angle of x axis labels
+        #axis.text.x = element_text(angle = 90, hjust = 1),
+        text = element_text(size = 20, family = "serif"))
+plot_changes_eh
+# save
+ggsave("output/plot_changes_eh.pdf", plot_changes_eh, width = 10, height = 6)
+```
+
+### Number of articles and citations per continent over time
+
+```{r plot_n_articles per continent}
+country_journal_stats <- read_csv("output/country_journal_stats.csv")
+
+# Summarize the data
+summary_data <- country_journal_stats %>%
+  group_by(publication.year, continent) %>%
+  summarise(n_articles = sum(n_articles),
+            n_citations = sum(tot_cite)) %>%
+  ungroup()
+
+# Calculate totals for reordering
+continent_totals <- summary_data %>%
+  group_by(publication.year) %>%
+  mutate(total_articles = sum(n_articles),
+         total_citations = sum(n_citations)) %>%
+  arrange(publication.year, desc(n_articles)) %>%
+  ungroup()
+
+# Reorder the continent factor
+summary_data <- continent_totals %>%
+  mutate(continent = factor(continent, levels = unique(continent)))
+eh_labels <- c("0" = "Economics", "1" = "Economic History")
+
+# Create the plot
+plot_narticles <- summary_data %>%
+  ggplot(aes(x = publication.year, y = n_articles, fill = continent)) +
+  geom_area(alpha = 0.8, size = 0.5, colour = "black") +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 2)) +
+  labs(x = "Year", y = "Number of Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+# Create the plot
+plot_citations <- summary_data %>%
+  ggplot(aes(x = publication.year, y = n_citations, fill = continent)) +
+  geom_area(alpha = 0.8, size = 0.5, colour = "black") +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 2)) +
+  labs(x = "Year", y = "Number of Citations") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+## ACROSS EH JOURNALS
+# Summarize the data
+summary_data <- country_journal_stats %>%
+  group_by(publication.year, continent, eh) %>%
+  summarise(n_articles = sum(n_articles),
+            n_citations = sum(tot_cite)) %>%
+  ungroup()
+
+# Calculate totals for reordering
+continent_totals <- summary_data %>%
+  group_by(publication.year, continent, eh) %>%
+  mutate(total_articles = sum(n_articles),
+         total_citations = sum(n_citations)) %>%
+  ungroup()
+
+# Reorder the continent factor
+summary_data <- continent_totals %>%
+  mutate(continent = factor(continent, levels = unique(continent)))
+
+# Create the plot
+plot_narticles_ehveconh <- summary_data %>%
+  complete(publication.year, continent, eh, fill = list(n_articles = 0, n_citations = 0)) %>%
+  filter(publication.year < 2020) %>%
+  ggplot(aes(x = publication.year, y = n_articles, fill = continent)) +
+  geom_area(alpha = 0.8, size = 0.5, colour = "black") +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2021, by = 2)) +
+  labs(x = "", y = "Number of Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif")) +
+  facet_wrap(~eh, scales = "free", labeller = as_labeller(eh_labels))
+
+plot_changes_eh <- summary_data %>%
+  ggplot(aes(x = publication.year, y = n_citations/n_articles, fill = continent)) +
+  geom_area(alpha = 0.8, size = 0.5, colour = "black") +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 2)) +
+  labs(x = "Year", y = "Citations per article") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif")) +
+  facet_wrap(~eh, scales = "free_y")
+
+plot_narticles
+plot_citations
+plot_narticles_ehveconh
+plot_changes_eh
+
+# save
+ggsave("output/finalplots/plot_narticles_ehveconh.png", plot_narticles_ehveconh, width = 10, height = 6)
+ggsave("output/finalplots/plot_citations.pdf", plot_citations, width = 10, height = 6)
+ggsave("output/finalplots/plot_changes_eh.pdf", plot_changes_eh, width = 10, height = 6)
+```
+
+## Plot Articles and Citations shares (not by EH)
+
+```{r plot_n_citations per continent}
+country_journal_stats <- read_csv("output/country_journal_stats.csv")
+# Summarize the data, compute the share of all citations per year
+summary_data <- country_journal_stats %>%
+  group_by(publication.year, continent, eh) %>%
+  summarise(n_citations = sum(tot_cite),
+            n_articles = sum(n_articles)) %>%
+  ungroup()
+
+citations_per_year <- summary_data %>%
+  group_by(publication.year, eh) %>%
+  summarise(total_citations = sum(n_citations),
+            total_articles = sum(n_articles)) %>%
+  ungroup()
+
+summary_data <- summary_data %>%
+  left_join(citations_per_year, by = c("publication.year", "eh")) %>%
+  mutate(share_citations = n_citations / total_citations,
+         share_articles = n_articles / total_articles)
+
+summary_data <- complete(summary_data, 
+                         publication.year, continent,
+                         eh, 
+                         fill = list(share_citations = 0, 
+                                     share_articles = 0)) 
+
+# Create the plot
+plot_citation_cont_shares <- summary_data %>%
+  ggplot(aes(x = publication.year, y = share_citations, col = continent)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 1)) +
+  labs(x = "Year", y = "Share of Citations") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        # change x axis angle
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif")) +
+  facet_wrap(~eh, scales = "free", labelle = as_labeller(eh_labels))
+
+plot_n_cont_shares <- summary_data %>%
+  ggplot(aes(x = publication.year, y = share_articles, col = continent)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 1)) +
+  labs(x = "Year", y = "Share of Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        # change x axis angle
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif")) +
+  facet_wrap(~eh, scales = "free_x", labelle = as_labeller(eh_labels))
+
+plot_citation_shares_by_n_shares <- summary_data %>% 
+  mutate(cshare_over_nshare = share_citations / (share_articles+0.0001)) %>%
+  filter(!continent %in% c("S. America", "Oceania", "Australia")) %>% 
+  ggplot(aes(x = publication.year, y = cshare_over_nshare, col = continent)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 1)) +
+  labs(x = "Year", y = "Share Citations/Share Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        # change x axis angle
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif")) +
+  facet_wrap(~eh, scales = "free", labelle = as_labeller(eh_labels))
+
+print(plot_citation_cont_shares)
+print(plot_n_cont_shares)
+print(plot_citation_shares_by_n_shares)
+
+# save
+ggsave("output/finalplots/plot_citation_cont_shares.pdf", plot_citation_cont_shares, width = 10, height = 6)
+ggsave("output/finalplots/plot_n_cont_shares.pdf", plot_n_cont_shares, width = 10, height = 6)
+```
+
+### Plot the use of novel keywords by continent over time
+
+```{r}
+country_journal_stats <- read_csv("output/country_journal_stats.csv")
+
+
+# AGGREGATE ACROSS EH AND ECON
+
+# Summarize the data
+summary_data <- country_journal_stats %>%
+  group_by(publication.year, continent) %>%
+  summarise(n_new_keywords = sum(new_keywords),
+            n_articles = sum(n_articles),
+            n_nkeywords_pera = n_new_keywords/n_articles) %>%
+  ungroup()
+
+# get 5 year smoothed average
+summary_data <- summary_data %>%
+  arrange(continent, publication.year) %>%
+  group_by(continent) %>%
+  mutate(n_nkeywords_smoothed = rollmean(n_nkeywords_pera, k = 5, fill = NA, align = 'center')) %>%
+  ungroup()
+
+# Create the plot
+plot_new_keywords_aggr <- summary_data %>%
+  filter(publication.year < 2020) %>%
+  complete(publication.year = 1999:2019, continent, fill = list(n_nkeywords_pera = NA)) %>% 
+  filter(publication.year > 2003) %>%
+  filter(continent != "Australia") %>%
+  filter(continent != "S. America") %>% 
+  ggplot() +
+  geom_line(aes(x = publication.year, y = n_nkeywords_smoothed, col = continent), size=1) +
+  geom_point(aes(x = publication.year, y = n_nkeywords_smoothed, col = continent), size=2) +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2019, by = 1)) +
+  labs(x = "", y = "New Keywords/Article") +
+  theme_minimal() +
+  theme(legend.position = c(0.5, -0.2), 
+        legend.title = element_blank(),
+        legend.direction = "horizontal",
+        # change x axis angle
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+plot_new_keywords_aggr
+# Summarize the data
+summary_data <- country_journal_stats %>%
+  group_by(publication.year, continent, eh) %>%
+  summarise(n_new_keywords = sum(new_keywords),
+            n_articles = sum(n_articles),
+            n_nkeywords_pera = n_new_keywords/n_articles) %>%
+  ungroup()
+
+# Create the plot
+plot_new_keywords_eh <- summary_data %>%
+  complete(publication.year = 1999:2018, continent, eh, fill = list(n_nkeywords_pera = NA)) %>% 
+  filter(publication.year > 2003) %>%
+  filter(continent != "Australia") %>%
+  filter(continent != "S. America") %>% 
+  ggplot() +
+  geom_line(aes(x = publication.year, y = n_nkeywords_pera, col = continent), size=1) +
+  geom_point(aes(x = publication.year, y = n_nkeywords_pera, col = continent), size=2) +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2021, by = 2)) +
+  labs(x = "Year", y = "New Keywords/Article") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        # change x axis angle
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif")) +
+  facet_wrap(~eh, scales = "free", labeller = as_labeller(eh_labels))
+
+print(plot_new_keywords_eh)
+print(plot_new_keywords_aggr)
+# save
+ggsave("output/finalplots/plot_new_keywords_eh.pdf", plot_new_keywords_eh, width = 10, height = 6)
+ggsave("output/finalplots/plot_new_keywords_aggr.pdf", plot_new_keywords_aggr, width = 15, height = 10)
+```
+
+## Continent centrality in two decades.
+
+# count the share of articles with more than one country
+
+```{r}
+data <- read_csv("output/articles_full.csv")
+
+# count the share of articles with more than one country
+summary <- data %>%
+  mutate(n_countries = str_count(country_studied, ";")+1) %>%
+  mutate(n_countries = ifelse(is.na(n_countries), 0, n_countries)) %>%
+  group_by(publication.year, eh) %>% 
+  summarise(International = sum(n_countries>1)/n(),
+            Intercontinental = sum(intercontinental==1)/n())
+
+summary <- pivot_longer(summary,
+                        c("International", "Intercontinental"),
+                        names_to = "scope", 
+                        values_to = "share")
+ # plot
+summary %>% 
+  mutate(publication.year = as.numeric(as.character(publication.year)),
+         eh = as.factor(eh)) %>% 
+  filter(publication.year < 2020) %>%
+  ggplot(aes(x = publication.year,
+             col = eh)) +
+  geom_point(aes(y = share,
+                 shape=scope),
+             size = 3) +
+  geom_line(aes(y = share,
+                linetype=scope), 
+            size = 1.2) +
+  scale_linetype_manual(values = c("Intercontinental" = "dotted", "International" = "solid")) +
+  scale_x_binned(breaks = seq(1999, 2019, by = 1)) +
+  labs(x = "", y = "Share of Articles") +
+  theme_minimal() + 
+  scale_color_manual(values = c("cornflowerblue", "firebrick"),
+                     labels = c("Economic History", "Economics")) +
+  scale_shape_manual(values = c("Intercontinental" = 20, "International" = 19),
+                     labels = c("Intercontinental", "International")) +
+  guides(col = guide_legend(title = "Journal Type"),
+         shape = guide_legend(title = "Scope", 
+                              override.aes = list(linetype = c("dotted", "solid"),
+                                                  size = 3)),
+         linetype = guide_legend(title = "Scope")) +
+  theme(legend.position = "bottom", 
+        legend.byrow = TRUE,
+        legend.title.position = "top",
+        legend.direction = "vertical",
+        # stack legends on top of each other
+        #legend.box = "vertical",
+        # change x axis angle
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+  # fix legend for eh=1 "Economic History", and eh=0 "Economics" and dashed lines with shape being "intercontiental", other being transational
+
+
+
+# Summarize the data
+summary_data <- country_journal_stats %>%
+  group_by(publication.year, continent) %>%
+  summarise(share_multicountry = mean(share_multicountry, na.rm = TRUE)) %>%
+  ungroup()
+
+# Create the plot
+plot_multicountry <- summary_data %>%
+  ggplot(aes(x = publication.year, y = share_multicountry, col = continent)) +
+  geom_line(size = 1) +
+  geom_point(size = 2) +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 1)) +
+  labs(x = "Year", y = "Share of Articles with Multiple Countries") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        legend.direction = "vertical",
+        # change x axis angle
+        axis.text.x = element_text(angle = 90, hjust = 1),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+# save
+ggsave("output/finalplots/plot_multicountry.pdf", plot_multicountry, width = 10, height = 6)
+```
+
+# make graph of coocurrences
+
+```{r}
+library(igraph)
+library(ggraph)
+library(tidygraph)
+library(manynet)
+library(patchwork)
+
+# load
+edges_2000 <- read_csv("output/G_count_2000.csv", col_names = c("source", "target", "weight"))
+edges_2005 <- read_csv("output/G_count_2005.csv", col_names = c("source", "target", "weight"))
+edges_2009 <- read_csv("output/G_count_2009.csv", col_names = c("source", "target", "weight"))
+edges_2014 <- read_csv("output/G_count_2014.csv", col_names = c("source", "target", "weight"))
+
+edges_2000_eh <- read_csv("output/G_count_2000_eh.csv", col_names = c("source", "target", "weight"))
+edges_2005_eh <- read_csv("output/G_count_2005_eh.csv", col_names = c("source", "target", "weight"))
+edges_2009_eh <- read_csv("output/G_count_2009_eh.csv", col_names = c("source", "target", "weight"))
+edges_2014_eh <- read_csv("output/G_count_2014_eh.csv", col_names = c("source", "target", "weight"))
+
+edges_2000_econ <- read_csv("output/G_count_2000_econ.csv", col_names = c("source", "target", "weight"))
+edges_2005_econ <- read_csv("output/G_count_2005_econ.csv", col_names = c("source", "target", "weight"))
+edges_2009_econ <- read_csv("output/G_count_2009_econ.csv", col_names = c("source", "target", "weight"))
+edges_2014_econ <- read_csv("output/G_count_2014_econ.csv", col_names = c("source", "target", "weight"))
+
+edge_list_list <- list(edges_2000, edges_2005, edges_2009, edges_2014,
+                       edges_2000_eh, edges_2005_eh, edges_2009_eh, edges_2014_eh,
+                       edges_2000_econ, edges_2005_econ, edges_2009_econ, edges_2014_econ)
+edge_list_eh <- list(edges_2000_eh, edges_2005_eh, edges_2009_eh, edges_2014_eh)
+edge_list_econ <- list(edges_2000_econ, edges_2005_econ, edges_2009_econ, edges_2014_econ)
+edge_list_names_eh <- c("2000_eh", "2005_eh", "2009_eh", "2014_eh")
+edge_list_names_econ <- c("2000_econ", "2005_econ", "2009_econ", "2014_econ")
+edge_list_names <- c("1999", "2004", "2009", "2014",
+                     "1999_eh", "2004_eh", "2009_eh", "2014_eh",
+                     "1999_econ", "2004_econ", "2009_econ", "2014_econ")
+
+country_continent <- read_csv("output/country_journal_stats.csv") %>% 
+  select(country, continent) %>% 
+  mutate(continent = case_when(
+    #continent == "Australia" ~ "Australia",
+    continent == "south america" ~ "S.America",
+    continent == "north america" ~ "N.America",
+    #continent == "Europe" ~ "Europe",
+    #continent == "Asia" ~ "Asia",
+    #continent == "Africa" ~ "Africa",
+    TRUE ~ continent
+  )) %>%
+  unique()
+
+continents <- data.frame("country" = c(country_continent %>% 
+                                         filter(continent!="Australia") %>% 
+                                         pull(continent) %>%
+                                         unique(),
+                                       "Czech Republic (Czechia)",
+                                       "North America",
+                                       "South America")
+                                       ,
+                         "continent" = c(country_continent %>% 
+                                         filter(continent!="Australia") %>% 
+                                         pull(continent) %>%
+                                         unique(),
+                                       "Europe",
+                                       "N. America",
+                                       "S. America"))
+
+country_continent <- rbind(country_continent, continents)
+
+
+### NETWORK VISUALISATION
+# Community detection function
+detect_communities <- function(graph) {
+  V(graph)$comms_louvain <- as.character(membership(cluster_louvain(graph)))
+  return(graph)
+}
+# Plot function
+plot_graph <- function(graph, comms_attr, titlechr) {
+  # predefine colours per continent
+  colours <- c("Europe" = "#1f78b4",   # Blue
+             "N. America" = "#e31a1c",  # Red
+             "S. America" = "#33a02c",  # Green
+             "Asia" = "#6a3d9a",    # Purple
+             "Africa" = "#ff7f00",  # Orange
+             "Australia" = "#b15928")  # Brown
+  p <- ggraph(graph, layout = "fr") +
+    geom_edge_link0(aes(edge_linewidth = weight),
+                       edge_colour = "gray",
+                       arrow = arrow(
+                         angle = 30, 
+                         length = unit(0.05, "inches"),
+                         ends = "last", 
+                         type = "closed"),
+                       end_cap = circle(0.1, 'inches')) +
+    geom_node_point(aes_string(fill = "continent",
+                               size = "size/2"),
+                    shape = 21) +
+    geom_node_text(aes(filter = size > 0,
+                       label = name,
+                       size = size), 
+                   repel = TRUE, 
+                   check_overlap = TRUE,
+                   family = "serif", 
+                   force = 1, 
+                   max.overlaps = Inf) +
+    scale_fill_manual(values = colours) +
+    scale_edge_width(range = c(0.1, 1),
+                     guide = "none") +
+    scale_size(range = c(3, 8),
+               guide = "none") +
+    scale_label_size_continuous(range = c(.5, .6),
+                                guide = "none") +
+    theme_graph() +
+    theme(legend.position = "none") +
+    guides(size = guide_legend(title = "Degree")) +
+    ggtitle(paste(titlechr))
+  return(p)
+}
+
+centralities <- data.frame()
+p_graphs <- list()
+graph_stats <- c()
+i <- 0 # counter loop
+j <- 1994 # counter period within graph
+
+for (edges in edge_list_list) {
+  i <- i+1
+    if(i%in%c(5,9)){
+    j <- 1994 # if we are at the start of a new graph, reset the period counter
+  }
+  j <- j+5
+  edges_list <- edges %>% 
+  left_join(country_continent, by = c("source" = "country")) %>%
+  rename("source_continent" = "continent") %>%
+  left_join(country_continent, by = c("target" = "country")) %>%
+  rename("target_continent" = "continent")
+  
+  edges_list$weight <- as.numeric(str_extract(edges_list$weight, "\\d+"))
+
+  print(edges$weight)
+  
+  graph <- graph_from_data_frame(edges_list, directed = FALSE)
+  graph <- set_vertex_attr(graph, "name", value = V(graph)$name)
+  
+  
+  stats <- c("Graph" = i,
+              "Number of vertices" = vcount(graph),
+             "Number of edges" = ecount(graph),
+             "Density" = edge_density(graph),
+             "Average centrality" = igraph::degree(graph, mode = "all") %>% mean(),
+             "Std centrality" =  igraph::degree(graph, mode = "all") %>% sd(),
+             "Average Bridge" = mean(igraph::betweenness(graph)),
+             "Std betweeness" = sd(igraph::betweenness(graph)),
+             "Average path length" = mean(shortest.paths(graph)),
+             "Diameter" = diameter(graph),
+             "Average clustering" = mean(transitivity(graph, type = "global")),
+  "Std clustering" = sd(transitivity(graph, type = "global")),
+  "Modularity" = modularity(graph, cluster_louvain(graph)$membership),
+  "Number of communities" = length(unique(cluster_louvain(graph)$membership)),
+  "Average community size" = mean(table(cluster_louvain(graph)$membership)),
+  "Std community size" = sd(table(cluster_louvain(graph)$membership)),
+  "Average community density" = mean(table(cluster_louvain(graph)$membership)/vcount(graph)),
+  "Std community density" = sd(table(cluster_louvain(graph)$membership)/vcount(graph)),
+  "Gini centrality" = gini_coefficient(igraph::degree(graph, mode = "all")),
+  "nestedness" = nested(as_adjacency_matrix(graph, sparse = FALSE), method = "NODF") %>% as.numeric())
+
+  graph_stats <- rbind(graph_stats, stats)
+  
+  # CENTRALITIES
+  # get centrality of each country
+  centrality <- igraph::degree(graph, mode = "all") %>% as.data.frame()
+  centrality$Country <- rownames(centrality)
+  centrality <- centrality %>% mutate(Period = j)
+  centrality <- centrality %>% mutate(graph = case_when(i<5 ~ "all",
+                                                    i>4 & i<9 ~ "eh",
+                                                    i>8 ~ "econ"))
+  centrality <- centrality %>% 
+    rename("Degree" = ".")
+  
+  # store in dataframe
+  centralities <- rbind(centralities, centrality)
+  
+  # PLOT
+  continents_ordered <- as_data_frame(graph, what = "vertices") %>% 
+    left_join(country_continent, by = c("name" = "country"), relationship = "one-to-one") %>% 
+    pull(continent)
+  V(graph)$continent <- continents_ordered
+  V(graph)$size <- centrality$Degree
+  set.seed(123)
+  p_graph <- plot_graph(graph, "continent", "")
+  
+  # store
+  p_graphs[[i]] <- p_graph
+}
+
+graph_stats <- as.data.frame(graph_stats)
+graph_stats$Graph <- edge_list_names
+wrap_plots(p_graphs) 
+# select only the 4 first plots
+p_graphs <- p_graphs[1:4]
+# wrap plots and add legend for colour, suppress size legend, supress letter in degree legend, and spell "continent" "Continent" for the colour
+plot <- wrap_plots(p_graphs, ncol=1) + theme(legend.position = "bottom", 
+                             legend.title = element_blank(),
+                             text = element_text(size = 20, family = "serif"),
+                             legend.direction = "horizontal",
+                             legend.byrow = TRUE) 
+
+# save
+ggsave("output/finalplots/plot.pdf", plot, width = 15, height = 35, limitsize=FALSE)
+facetlabs <- c("all" = "All", "eh" = "Economic History", "econ" = "Economics")
+# plot graph
+centralitiesPlot <- centralities %>% 
+  filter(graph=="all") %>% 
+  ggplot() + 
+  geom_histogram(aes(x = log(Degree), 
+                     fill=as.factor(Period)),
+                 alpha = 1, position = "dodge", col="black",
+                 bins = 7) +
+  facet_wrap(~graph, scales = "free_y") +
+             #,
+             #labeller = facetlabs) +
+  theme_minimal() +
+  labs(x = "Number of co-occurences, logged", y = "Number of Countries") +
+  #scale_fill_discrete(labels = c("2004-2009", "2010-2014", "2015-2019")) +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+centralitiesPlot
+# save
+ggsave("output/finalplots/centralitiesPlot.pdf", centralitiesPlot, width = 10, height = 6)
+
+
+# output stats a latex table, omitting first column
+install.packages("kableExtra")
+library(kableExtra)
+graph_stats %>% # drop row names
+  rownames_to_column() %>%
+  select(-rowname) %>% # drop std clustering
+  select(-c("Std clustering", "Average Bridge", "Std betweeness", "Average path length", "Average community density", "Std community density","Gini centrality")) %>%# coerce to only two decimal points
+  mutate_if(is.numeric, round, 2) %>%
+  mutate(Graph = case_when(
+    Graph == "1999" ~ "1999-2004 (All)",
+    Graph == "2004" ~ "2005-2009 (All)",
+    Graph == "2009" ~ "2010-2014 (All)",
+    Graph == "2014" ~ "2015-2019 (All)",
+    Graph == "1999_eh" ~ "1999-2004 (Economic History)",
+    Graph == "2004_eh" ~ "2005-2009 (Economic History)",
+    Graph == "2009_eh" ~ "2010-2014 (Economic History)",
+    Graph == "2014_eh" ~ "2015-2019 (Economic History)",
+    Graph == "1999_econ" ~ "1999-2004 (Economics)",
+    Graph == "2004_econ" ~ "2005-2009 (Economics)",
+    Graph == "2009_econ" ~ "2010-2014 (Economics)",
+    Graph == "2014_econ" ~ "2015-2019 (Economics)",
+    TRUE ~ "Other")) %>% 
+  kable("latex", booktabs = T, caption = "Graph statistics") %>%
+  kable_styling(latex_options = "hold_position") %>%
+  save_kable("output/finalplots/graph_stats.tex")
+
+G_pre <- detect_communities(G_pre)
+V(G_pre)$size <- degree(G_pre)
+#graph <- mutate_nodes(graph, 
+#                      comms_walktrap = case_when(
+#                        comms_walktrap == 1 ~ "Roumania/Albania",
+#                        comms_walktrap == 2 ~ "Western-Block",
+#                        comms_walktrap == 3 ~ "Soviet-Block",
+#                        comms_walktrap == 4 ~ "US-Periphery",
+#                        comms_walktrap == 5 ~ "Other",
+#                        comms_walktrap == 6 ~ "North Korea",
+#                        TRUE ~ "Other"))
+p_G_pre <- plot_graph(G_pre, "continent", "1999-2011")
+p_G_pre
+
+G_post <- detect_communities(G_post)
+V(G_post)$size <- degree(G_post)
+#G_post <- mutate_nodes(G_post, 
+  #                    comms_walktrap = case_when(
+ #                       comms_walktrap == 1 ~ "Roumania/Albania",
+   #                     comms_walktrap == 2 ~ "Western-Block",
+    #                    comms_walktrap == 3 ~ "Soviet-Block",
+     #                   comms_walktrap == 4 ~ "US-Periphery",
+      #                  comms_walktrap == 5 ~ "Other",
+       #                 comms_walktrap == 6 ~ "North Korea",
+#                        TRUE ~ "Other"))
+p_G_post <- plot_graph(G_post,  "comms_louvain", "2011-2021")
+
+p_G_pre
+p_G_post
+pList <- c(list(p_G_pre), list(p_G_post))
+plot_changes <- wrap_plots(plotlist = pList, cols = 2)
+
+
+# save
+ggsave("output/finalplots/centralitiesPlot.pdf", centralitiesPlot, width = 10, height = 6)
+ggsave("output/finalplots/plot_changes.png", plot_changes, width = 15, height = 6)
+```
+
+## Disaggreagte continnents by country (old code)
+
+```{r}
+# plot n_articles over time by country, generate 1 plot by continent
+# Summarize the data
+summary_data <- country_journal_stats %>%
+  group_by(publication.year, country, continent) %>%
+  summarise(n_articles = sum(n_articles)) %>%
+  ungroup()
+
+# Calculate totals for reordering
+country_totals <- summary_data %>%
+  group_by(publication.year) %>%
+  mutate(total_articles = sum(n_articles)) %>%
+  ungroup() %>%
+  group_by(publication.year, country, continent) %>%
+  summarise(n_articles = sum(n_articles), total_articles = first(total_articles)) %>%
+  arrange(publication.year, desc(n_articles)) %>%
+  ungroup()
+
+# add 0 for any years in which a country is missing
+summary_data <- summary_data %>%
+  complete(publication.year = 1999:2019, country, fill = list(n_articles = 0), nesting(continent))
+
+# reorder the country factor
+summary_data <- country_totals %>%
+  mutate(country = factor(country, levels = unique(country)))
+
+
+plot_changes_eu <- summary_data %>%
+  filter(continent == "Europe") %>%
+  ggplot(aes(x = publication.year, y = n_articles, fill = country)) +
+  geom_area(alpha = 0.8, size = 0.2, colour = "black") +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 2)) +
+  labs(x = "Year", y = "Number of Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+plot_changes_asia <- summary_data %>%
+  filter(continent == "Asia") %>%
+  ggplot(aes(x = publication.year, y = n_articles, fill = country)) +
+  geom_area(alpha = 0.8, size = 0.2, colour = "black") +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 2)) +
+  labs(x = "Year", y = "Number of Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+plot_changes_africa <- summary_data %>%
+  filter(continent == "Africa") %>%
+  ggplot(aes(x = publication.year, y = n_articles, fill = country)) +
+  geom_area(alpha = 0.8, size = 0.2, colour = "black") +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 2)) +
+  labs(x = "Year", y = "Number of Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+plot_changes_namerica <- summary_data %>%
+  filter(continent == "N. America") %>%
+  ggplot(aes(x = publication.year, y = n_articles, fill = country)) +
+  geom_area(alpha = 0.8, size = 0.2, colour = "black") +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 2)) +
+  labs(x = "Year", y = "Number of Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+plot_changes_samerica <- summary_data %>%
+  filter(continent == "S. America") %>%
+  ggplot(aes(x = publication.year, y = n_articles, fill = country)) +
+  geom_area(alpha = 0.8, size = 0.2, colour = "black") +
+  scale_fill_discrete() +
+  scale_x_continuous(breaks = seq(1999, 2018, by = 2)) +
+  labs(x = "Year", y = "Number of Articles") +
+  theme_minimal() +
+  theme(legend.position = "bottom", 
+        legend.title = element_blank(),
+        panel.grid.major.x = element_blank(), 
+        panel.grid.minor.x = element_blank(),
+        text = element_text(size = 20, family = "serif"))
+
+
+plot_changes_eu
+plot_changes_africa
+plot_changes_asia
+plot_changes_namerica
+plot_changes_samerica
+
+grid.arrange(plot_changes_eu, plot_changes_africa, plot_changes_asia, plot_changes_namerica, plot_changes_samerica, ncol = 2, nrow=3,
+             # put all legends as tiny and at the bottom
+             legend = g_legend(plot_changes_eu + theme(legend.position = "bottom")$legend))
+# save all 
+ggsave("output/plot_changes_eu.pdf", plot_changes_eu, width = 10, height = 6)
+ggsave("output/plot_changes_africa.pdf", plot_changes_africa, width = 10, height = 6)
+ggsave("output/plot_changes_asia.pdf", plot_changes_asia, width = 10, height = 6)
+ggsave("output/plot_changes_namerica.pdf", plot_changes_namerica, width = 10, height = 6)
+ggsave("output/plot_changes_samerica.pdf", plot_changes_samerica, width = 10, height = 6)
+```

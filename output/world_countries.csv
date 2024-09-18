@@ -1,0 +1,196 @@
+Country,Abreviation,Capital.City,Continent,nationality
+Afghanistan,AFG,Kabul,Asia,Afghan
+Albania,ALB,Tirana,Europe,Albanian
+Algeria,DZA,Algiers,Africa,Algerian
+Andorra,AND,Andorra la Vella,Europe,Andorran
+Angola,AGO,Luanda,Africa,Angolan
+Antigua and Barbuda,ATG,St. John's,N. America,Antiguan or Barbudan
+Argentina,ARG,Buenos Aires,S. America,Argentine
+Armenia,ARM,Yerevan,Asia,Armenian
+Australia,AUS,Canberra,Australia,Australian
+Austria,AUT,Vienna,Europe,Austrian
+Azerbaijan,AZE,Baku,Asia,"Azerbaijani, Azeri"
+Bahamas,BHS,Nassau,N. America,Bahamian
+Bahrain,BHR,Manama,Asia,Bahraini
+Bangladesh,BGD,Dhaka,Asia,Bangladeshi
+Barbados,BRB,Bridgetown,N. America,Barbadian
+Belarus,BLR,Minsk,Europe,Belarusian
+Belgium,BEL,Brussels,Europe,Belgian
+Belize,BLZ,Belmopan,N. America,Belizean
+Benin,BEN,Porto-Novo,Africa,"Beninese, Beninois"
+Bhutan,BTN,Thimphu,Asia,Bhutanese
+Bolivia,BOL,La Paz,S. America,Bolivian
+Bosnia and Herzegovina,BIH,Sarajevo,Europe,Bosnian or Herzegovinian
+Botswana,BWA,Gaborone,Africa,"Motswana, Botswanan"
+Brazil,BRA,Brasília,S. America,Brazilian
+Brunei,BRN,Bandar Seri Begawan,Asia,Bruneian
+Bulgaria,BGR,Sofia,Europe,Bulgarian
+Burkina Faso,BFA,Ouagadougou,Africa,Burkinabé
+Burundi,BDI,Gitega,Africa,Burundian
+Cabo Verde,CPV,Praia,Africa,Cabo Verdean
+Cambodia,KHM,Phnom Penh,Asia,Cambodian
+Cameroon,CMR,Yaoundé,Africa,Cameroonian
+Canada,CAN,Ottawa,N. America,Canadian
+Central African Republic,CAF,Bangui,Africa,Central African
+Chad,TCD,N'Djamena,Africa,Chadian
+Chile,CHL,Santiago,S. America,Chilean
+China,CHN,Beijing,Asia,Chinese
+Colombia,COL,Bogotá,S. America,Colombian
+Comoros,COM,Moroni,Africa,"Comoran, Comorian"
+Congo,COG,Brazzaville,Africa,Congolese
+Costa Rica,CRI,San José,N. America,Costa Rican
+Côte d'Ivoire,CIV,Yamoussoukro,Africa,Ivorian
+Croatia,HRV,Zagreb,Europe,Croatian
+Cuba,CUB,Havana,N. America,Cuban
+Cyprus,CYP,Nicosia,Asia,Cypriot
+Czech Republic (Czechia),CZE,Prague,Europe,Czech
+Denmark,DNK,Copenhagen,Europe,Danish
+Djibouti,DJI,Djibouti,Africa,Djiboutian
+Dominica,DMA,Roseau,N. America,Dominican
+Dominican Republic,DOM,Santo Domingo,N. America,Dominican
+DR Congo,COD,Kinshasa,Africa,Congolese
+Ecuador,ECU,Quito,S. America,Ecuadorian
+Egypt,EGY,Cairo,Africa,Egyptian
+El Salvador,SLV,San Salvador,N. America,Salvadoran
+Equatorial Guinea,GNQ,Malabo,Africa,"Equatorial Guinean, Equatoguinean"
+Eritrea,ERI,Asmara,Africa,Eritrean
+Estonia,EST,Tallinn,Europe,Estonian
+Eswatini,SWZ,Mbabane,Africa,Swazi
+Ethiopia,ETH,Addis Ababa,Africa,Ethiopian
+Fiji,FJI,Suva,Australia,Fijian
+Finland,FIN,Helsinki,Europe,Finnish
+France,FRA,Paris,Europe,French
+Gabon,GAB,Libreville,Africa,Gabonese
+Gambia,GMB,Banjul,Africa,Gambian
+Georgia,GEO,Tbilisi,Asia,Georgian
+Germany,DEU,Berlin,Europe,German
+Ghana,GHA,Accra,Africa,Ghanaian
+Greece,GRC,Athens,Europe,"Greek, Hellenic"
+Grenada,GRD,St. George's,N. America,Grenadian
+Guatemala,GTM,Guatemala City,N. America,Guatemalan
+Guinea,GIN,Conakry,Africa,Guinean
+Guinea-Bissau,GNB,Bissau,Africa,Bissau-Guinean
+Guyana,GUY,Georgetown,S. America,Guyanese
+Haiti,HTI,Port-au-Prince,N. America,Haitian
+Holy See,VAT,Vatican City,Europe,Vatican
+Honduras,HND,Tegucigalpa,N. America,Honduran
+Hungary,HUN,Budapest,Europe,"Hungarian, Magyar"
+Iceland,ISL,Reykjavik,Europe,Icelandic
+India,IND,New Delhi,Asia,Indian
+Indonesia,IDN,Jakarta,Asia,Indonesian
+Iran,IRN,Tehran,Asia,"Iranian, Persian"
+Iraq,IRQ,Baghdad,Asia,Iraqi
+Ireland,IRL,Dublin,Europe,Irish
+Israel,ISR,Jerusalem,Asia,Israeli
+Italy,ITA,Rome,Europe,Italian
+Jamaica,JAM,Kingston,N. America,Jamaican
+Japan,JPN,Tokyo,Asia,Japanese
+Jordan,JOR,Amman,Asia,Jordanian
+Kazakhstan,KAZ,Nur-Sultan,Asia,"Kazakhstani, Kazakh"
+Kenya,KEN,Nairobi,Africa,Kenyan
+Kiribati,KIR,South Tarawa,Australia,I-Kiribati
+Kuwait,KWT,Kuwait City,Asia,Kuwaiti
+Kyrgyzstan,KGZ,Bishkek,Asia,"Kyrgyzstani, Kyrgyz, Kirgiz, Kirghiz"
+Laos,LAO,Vientiane,Asia,"Lao, Laotian"
+Latvia,LVA,Riga,Europe,Latvian
+Lebanon,LBN,Beirut,Asia,Lebanese
+Lesotho,LSO,Maseru,Africa,Basotho
+Liberia,LBR,Monrovia,Africa,Liberian
+Libya,LBY,Tripoli,Africa,Libyan
+Liechtenstein,LIE,Vaduz,Europe,Liechtenstein
+Lithuania,LTU,Vilnius,Europe,Lithuanian
+Luxembourg,LUX,Luxembourg City,Europe,"Luxembourg, Luxembourgish"
+Madagascar,MDG,Antananarivo,Africa,Malagasy
+Malawi,MWI,Lilongwe,Africa,Malawian
+Malaysia,MYS,Kuala Lumpur,Asia,Malaysian
+Maldives,MDV,Male,Asia,Maldivian
+Mali,MLI,Bamako,Africa,"Malian, Malinese"
+Malta,MLT,Valletta,Europe,Maltese
+Marshall Islands,MHL,Majuro,Australia,Marshallese
+Mauritania,MRT,Nouakchott,Africa,Mauritanian
+Mauritius,MUS,Port Louis,Africa,Mauritian
+Mexico,MEX,Mexico City,N. America,Mexican
+Micronesia,FSM,Palikir,Australia,Micronesian
+Moldova,MDA,Chisinau,Europe,Moldovan
+Monaco,MCO,Monaco,Europe,"Monégasque, Monacan"
+Mongolia,MNG,Ulaanbaatar,Asia,Mongolian
+Montenegro,MNE,Podgorica,Europe,Montenegrin
+Morocco,MAR,Rabat,Africa,Moroccan
+Mozambique,MOZ,Maputo,Africa,Mozambican
+Myanmar,MMR,Naypyidaw,Asia,Burmese
+Namibia,NAM,Windhoek,Africa,Namibian
+Nauru,NRU,Yaren District,Australia,Nauruan
+Nepal,NPL,Kathmandu,Asia,"Nepali, Nepalese"
+Netherlands,NLD,Amsterdam,Europe,"Dutch, Netherlandic"
+New Zealand,NZL,Wellington,Australia,"New Zealand, NZ"
+Nicaragua,NIC,Managua,N. America,Nicaraguan
+Niger,NER,Niamey,Africa,Nigerien
+Nigeria,NGA,Abuja,Africa,Nigerian
+North Korea,PRK,Pyongyang,Asia,North Korean
+North Macedonia,MKD,Skopje,Europe,Macedonian
+Norway,NOR,Oslo,Europe,Norwegian
+Oman,OMN,Muscat,Asia,Omani
+Pakistan,PAK,Islamabad,Asia,Pakistani
+Palau,PLW,Ngerulmud,Australia,Palauan
+Panama,PAN,Panama City,N. America,Panamanian
+Papua New Guinea,PNG,Port Moresby,Australia,"Papua New Guinean, Papuan"
+Paraguay,PRY,Asunción,S. America,Paraguayan
+Peru,PER,Lima,S. America,Peruvian
+Philippines,PHL,Manila,Asia,"Philippine, Filipino"
+Poland,POL,Warsaw,Europe,Polish
+Portugal,PRT,Lisbon,Europe,Portuguese
+Qatar,QAT,Doha,Asia,Qatari
+Romania,ROM,Bucharest,Europe,Romanian
+Russia,RUS,Moscow,Europe,Russian
+Rwanda,RWA,Kigali,Africa,Rwandan
+Saint Kitts & Nevis,KNA,Basseterre,N. America,Kittitian or Nevisian
+Saint Lucia,LCA,Castries,N. America,Saint Lucian
+Samoa,WSM,Apia,Australia,Samoan
+San Marino,SMR,San Marino,Europe,Sammarinese
+Sao Tome & Principe,STP,São Tomé,Africa,São Toméan
+Saudi Arabia,SAU,Riyadh,Asia,"Saudi, Saudi Arabian"
+Senegal,SEN,Dakar,Africa,Senegalese
+Serbia,SRB,Belgrade,Europe,Serbian
+Seychelles,SYC,Victoria,Africa,Seychellois
+Sierra Leone,SLE,Freetown,Africa,Sierra Leonean
+Singapore,SGP,Singapore,Asia,Singaporean
+Slovakia,SVK,Bratislava,Europe,Slovak
+Slovenia,SVN,Ljubljana,Europe,"Slovenian, Slovene"
+Solomon Islands,SLB,Honiara,Australia,Solomon Island
+Somalia,SOM,Mogadishu,Africa,"Somali, Somalian"
+South Africa,ZAF,Cape Town,Africa,South African
+South Korea,KOR,Seoul,Asia,South Korean
+South Sudan,SSD,Juba,Africa,South Sudanese
+Spain,ESP,Madrid,Europe,Spanish
+Sri Lanka,LKA,Sri Jayawardenepura Kotte,Asia,Sri Lankan
+St. Vincent & Grenadines,VCT,Kingstown,N. America,"Saint Vincentian, Vincentian"
+State of Palestine,PSE,Ramallah,Asia,Palestinian
+Sudan,SDN,Khartoum,Africa,Sudanese
+Suriname,SUR,Paramaribo,S. America,Surinamese
+Sweden,SWE,Stockholm,Europe,Swedish
+Switzerland,CHE,Bern,Europe,Swiss
+Syria,SYR,Damascus,Asia,Syrian
+Tajikistan,TJK,Dushanbe,Asia,Tajikistani
+Tanzania,TZA,Dodoma,Africa,Tanzanian
+Thailand,THA,Bangkok,Asia,Thai
+Timor-Leste,TLS,Dili,Asia,Timorese
+Togo,TGO,Lomé,Africa,Togolese
+Tonga,TON,Nuku'alofa,Australia,Tongan
+Trinidad and Tobago,TTO,Port of Spain,N. America,Trinidadian or Tobagonian
+Tunisia,TUN,Tunis,Africa,Tunisian
+Turkey,TUR,Ankara,Asia,Turkish
+Turkmenistan,TKM,Ashgabat,Asia,Turkmen
+Tuvalu,TUV,Funafuti,Australia,Tuvaluan
+Uganda,UGA,Kampala,Africa,Ugandan
+Ukraine,UKR,Kyiv,Europe,Ukrainian
+United Arab Emirates,ARE,Abu Dhabi,Asia,"Emirati, Emirian, Emiri"
+United Kingdom,GBR,London,Europe,"British, UK"
+United States,USA,Washington DC,N. America,American
+Uruguay,URY,Montevideo,S. America,Uruguayan
+Uzbekistan,UZB,Tashkent,Asia,"Uzbekistani, Uzbek"
+Vanuatu,VUT,Port Vila,Australia,"Ni-Vanuatu, Vanuatuan"
+Venezuela,VEN,Caracas,S. America,Venezuelan
+Vietnam,VNM,Hanoi,Asia,Vietnamese
+Yemen,YEM,Sana'a,Asia,Yemeni
+Zambia,ZMB,Lusaka,Africa,Zambian
+Zimbabwe,ZWE,Harare,Africa,Zimbabwean
